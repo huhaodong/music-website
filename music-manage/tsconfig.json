@@ -14,6 +14,9 @@
     "noImplicitAny": false,
     "strictNullChecks": false,
     "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
     "types": [
       "webpack-env"
     ],
@@ -37,6 +40,7 @@
     "tests/**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "node_modules/@types/node/**/*"
   ]
 }

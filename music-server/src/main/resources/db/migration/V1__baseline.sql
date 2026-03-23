@@ -1,0 +1,2 @@
+-- V1: Baseline version for existing database
+-- This is a placeholder to establish baseline version before incremental migrations

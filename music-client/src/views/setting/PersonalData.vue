@@ -1,7 +1,10 @@
 <template>
   <el-form ref="updateForm" label-width="70px" :model="registerForm" :rules="SignUpRules">
     <el-form-item prop="username" label="用户名">
-      <el-input v-model="registerForm.username" placeholder="用户名"></el-input>
+      <el-input v-model="registerForm.username" placeholder="用户名" disabled></el-input>
+    </el-form-item>
+    <el-form-item prop="nickname" label="昵称">
+      <el-input v-model="registerForm.nickname" placeholder="昵称"></el-input>
     </el-form-item>
     <el-form-item label="性别">
       <el-radio-group v-model="registerForm.sex">
@@ -51,6 +54,7 @@ export default defineComponent({
     // 注册
     const registerForm = reactive({
       username: "",
+      nickname: "",
       sex: "",
       phoneNum: "",
       email: "",
@@ -64,6 +68,7 @@ export default defineComponent({
     async function getUserInfo(id) {
       const result = (await HttpManager.getUserOfId(id)) as ResponseBody;
       registerForm.username = result.data[0].username;
+      registerForm.nickname = result.data[0].nickname || "";
       registerForm.sex = result.data[0].sex;
       registerForm.phoneNum = result.data[0].phoneNum;
       registerForm.email = result.data[0].email;
@@ -74,22 +79,22 @@ export default defineComponent({
     }
 
     async function saveMsg() {
-      let canRun = true;
-      (proxy.$refs["updateForm"] as any).validate((valid) => {
-        if (!valid) return (canRun = false);
-      });
-      if (!canRun) return;
-
+      try {
+        await (proxy.$refs["updateForm"] as any).validate();
+      } catch {
+        return;
+      }
 
       const id = userId.value;
       const username = registerForm.username;
+      const nickname = registerForm.nickname;
       const sex = registerForm.sex;
       const phoneNum = registerForm.phoneNum;
       const email = registerForm.email;
       const birth = registerForm.birth;
       const introduction = registerForm.introduction;
       const location = registerForm.location;
-      const result = (await HttpManager.updateUserMsg({id,username,sex,phoneNum,email,birth,introduction,location})) as ResponseBody;
+      const result = (await HttpManager.updateUserMsg({id,username,nickname,sex,phoneNum,email,birth,introduction,location})) as ResponseBody;
       (proxy as any).$message({
         message: result.message,
         type: result.type,
@@ -101,7 +106,9 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      getUserInfo(userId.value);
+      if (userId.value) {
+        getUserInfo(userId.value);
+      }
     });
 
     return {

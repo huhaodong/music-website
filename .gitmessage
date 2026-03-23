@@ -1,0 +1,13 @@
+# <type>(<scope>): <subject>
+#
+# Types:
+# feat: 新功能
+# fix: 修复bug
+# docs: 文档更新
+# style: 代码格式（不影响功能）
+# refactor: 重构
+# test: 测试相关
+# chore: 构建/工具相关
+#
+# Example:
+# feat(user): 添加用户注册功能

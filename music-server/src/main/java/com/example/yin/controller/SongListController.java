@@ -33,6 +33,12 @@ public class SongListController {
         return songListService.allSongList();
     }
 
+    // 根据ID返回歌单详情
+    @GetMapping("/songList/detail")
+    public R getSongListById(@RequestParam Integer id) {
+        return songListService.getSongListById(id);
+    }
+
     // 返回标题包含文字的歌单
     @GetMapping("/songList/likeTitle/detail")
     public R songListOfLikeTitle(@RequestParam String title) {

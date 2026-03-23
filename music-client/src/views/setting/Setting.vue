@@ -38,6 +38,7 @@ export default defineComponent({
     const userId = computed(() => store.getters.userId);
 
     async function cancelAccount() {
+      if (!userId.value) return;
       const result = (await HttpManager.deleteUser(userId.value)) as ResponseBody;
       (proxy as any).$message({
         message: result.message,

@@ -151,6 +151,9 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
     @Override
     public R deleteSong(Integer id) {
         Song song = songMapper.selectById(id);
+        if (song == null) {
+            return R.error("删除失败");
+        }
         String path = song.getUrl();
         String[] parts = path.split("/");
         String fileName = parts[parts.length - 1];

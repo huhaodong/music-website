@@ -49,5 +49,6 @@ window.addEventListener("beforeunload", () => {
 .el-main {
   padding-left: 0;
   padding-right: 0;
+  background-color: $theme-background-color;
 }
 </style>

@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { getToken, getUserId } from "@/utils/auth";
+
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/:pathMatch(.*)*",
@@ -106,6 +108,23 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  if (to.matched.some((record) => record.meta.requireAuth)) {
+    const token = getToken();
+    const userId = getUserId();
+    if (!token || !userId) {
+      next({
+        path: "/sign-in",
+        query: { redirect: to.fullPath },
+      });
+    } else {
+      next();
+    }
+  } else {
+    next();
+  }
 });
 
 export default router;

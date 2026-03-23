@@ -5,7 +5,8 @@
         <el-image fit="contain" :src="attachImageUrl(userPic)"/>
       </div>
       <div class="personal-msg">
-        <div class="username">{{ personalInfo.username }}</div>
+        <div class="nickname">{{ personalInfo.nickname || personalInfo.username }}</div>
+        <div class="username">@{{ personalInfo.username }}</div>
         <div class="introduction">{{ personalInfo.introduction }}</div>
       </div>
       <el-button class="edit-info" round :icon="Edit" @click="goPage()">修改个人信息</el-button>
@@ -43,6 +44,7 @@ export default defineComponent({
     const collectSongList = ref([]); // 收藏的歌曲
     const personalInfo = reactive({
       username: "",
+      nickname: "",
       userSex: "",
       birth: "",
       location: "",
@@ -60,6 +62,7 @@ export default defineComponent({
     async function getUserInfo(id) {
       const result = (await HttpManager.getUserOfId(id)) as ResponseBody;
       personalInfo.username = result.data[0].username;
+      personalInfo.nickname = result.data[0].nickname;
       personalInfo.userSex = result.data[0].sex;
       personalInfo.birth = result.data[0].birth;
       personalInfo.introduction = result.data[0].introduction;
@@ -87,8 +90,10 @@ export default defineComponent({
     }
 
     nextTick(() => {
-      getUserInfo(userId.value);
-      getCollection(userId.value);
+      if (userId.value) {
+        getUserInfo(userId.value);
+        getCollection(userId.value);
+      }
     });
 
     return {
@@ -139,9 +144,15 @@ export default defineComponent({
     position: absolute;
     top: -120px;
 
-    .username {
+    .nickname {
       font-size: 50px;
       font-weight: 600;
+    }
+
+    .username {
+      font-size: 16px;
+      color: #999;
+      margin-top: 4px;
     }
 
     .introduction {

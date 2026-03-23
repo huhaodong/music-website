@@ -2,7 +2,7 @@
   <div class="yin-header">
     <!--图标-->
     <div class="header-logo" @click="goPage()">
-      <yin-icon :icon="iconList.ERJI"></yin-icon>
+      <img class="logo-img" src="@/assets/images/SoundJion.png" alt="logo" />
       <span>{{ musicName }}</span>
     </div>
     <yin-header-nav class="yin-header-nav" :styleList="headerNavList" :activeName="activeNavName" @click="goPage"></yin-header-nav>
@@ -24,18 +24,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, getCurrentInstance, computed, reactive } from "vue";
+import { defineComponent, ref, getCurrentInstance, computed } from "vue";
 import { Search } from "@element-plus/icons-vue";
 import { useStore } from "vuex";
-import YinIcon from "./YinIcon.vue";
 import YinHeaderNav from "./YinHeaderNav.vue";
 import mixin from "@/mixins/mixin";
-import { HEADERNAVLIST, SIGNLIST, MENULIST, Icon, MUSICNAME, RouterName, NavName } from "@/enums";
+import { HEADERNAVLIST, SIGNLIST, MENULIST, MUSICNAME, RouterName, NavName } from "@/enums";
 import { HttpManager } from "@/api";
 
 export default defineComponent({
   components: {
-    YinIcon,
     YinHeaderNav,
   },
   setup() {
@@ -47,9 +45,6 @@ export default defineComponent({
     const headerNavList = ref(HEADERNAVLIST); // 左侧导航栏
     const signList = ref(SIGNLIST); // 右侧导航栏
     const menuList = ref(MENULIST); // 用户下拉菜单项
-    const iconList = reactive({
-      ERJI: Icon.ERJI,
-    });
     const keywords = ref("");
     const activeNavName = computed(() => store.getters.activeNavName);
     const userPic = computed(() => store.getters.userPic);
@@ -91,7 +86,6 @@ export default defineComponent({
       headerNavList,
       signList,
       menuList,
-      iconList,
       keywords,
       activeNavName,
       userPic,
@@ -149,8 +143,9 @@ export default defineComponent({
   font-size: $font-size-logo;
   font-weight: bold;
   cursor: pointer;
-  .icon {
-    @include icon(1.9rem, $color-black);
+  .logo-img {
+    width: 1.9rem;
+    height: 1.9rem;
     vertical-align: middle;
   }
   span {

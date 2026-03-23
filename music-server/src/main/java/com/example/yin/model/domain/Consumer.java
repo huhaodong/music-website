@@ -30,6 +30,8 @@ public class Consumer {
 
     private String avator;
 
+    private String nickname;
+
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
 

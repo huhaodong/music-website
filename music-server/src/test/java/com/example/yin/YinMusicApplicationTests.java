@@ -1,14 +1,17 @@
 package com.example.yin;
 
+import com.example.yin.config.TestMinioConfig;
 import com.example.yin.service.impl.ConsumerServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@Import(TestMinioConfig.class)
 public class YinMusicApplicationTests {
 
     @Autowired

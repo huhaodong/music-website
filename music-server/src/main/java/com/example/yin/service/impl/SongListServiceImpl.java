@@ -74,6 +74,16 @@ public class SongListServiceImpl extends ServiceImpl<SongListMapper, SongList> i
     }
 
     @Override
+    public R getSongListById(Integer id) {
+        SongList songList = songListMapper.selectById(id);
+        if (songList != null) {
+            return R.success(null, songList);
+        } else {
+            return R.error("歌单不存在");
+        }
+    }
+
+    @Override
     public R addSongList(SongListRequest addSongListRequest) {
         SongList songList = new SongList();
         BeanUtils.copyProperties(addSongListRequest, songList);

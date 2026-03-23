@@ -3,11 +3,11 @@ import {deletes, get, getBaseURL, post} from './request'
 const HttpManager = {
     // 获取图片信息
     attachImageUrl: (url) => `${getBaseURL()}/${url}`,
-    // =======================> 管理员 API 完成
-    // 是否登录成功
-    getLoginStatus: ({username, password}) => post(`admin/login/status`, {username, password}),
+    // =======================> 认证 API
+    // JWT 登录
+    login: ({ username, password, userType }) => post(`auth/login`, { username, password, userType }),
 
-    // =======================> 用户 API 完成
+    // =======================> 管理员 API 完成
     // 返回所有用户
     getAllUser: () => get(`user`),
     // 返回指定ID的用户

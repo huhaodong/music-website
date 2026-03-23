@@ -59,12 +59,12 @@ export default defineComponent({
     }
 
     async function confirm() {
-      let canRun = true;
-      (proxy.$refs["passwordForm"] as any).validate((valid) => {
-        if (!valid) return (canRun = false);
-      });
-      if (!canRun) return;
-
+      try {
+        await (proxy.$refs["passwordForm"] as any).validate();
+      } catch {
+        return;
+      }
+      if (!userId.value) return;
 
       const id = userId.value;
       const username = userName.value;

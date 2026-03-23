@@ -1,23 +1,14 @@
 <template>
   <div class="login-logo">
-    <yin-icon :icon="icon"></yin-icon>
+    <img class="logo-img" src="@/assets/images/SoundJion.png" alt="logo" />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import YinIcon from "./YinIcon.vue";
-import { Icon } from "@/enums";
 
 export default defineComponent({
-  components: {
-    YinIcon,
-  },
-  data() {
-    return {
-      icon: Icon.ERJI,
-    };
-  },
+  components: {},
 });
 </script>
 
@@ -31,8 +22,9 @@ export default defineComponent({
   min-width: 50vw;
   overflow: hidden;
   @include layout(center, center);
-  .icon {
-    @include icon(36rem, $color-blue-dark);
+  .logo-img {
+    width: 36rem;
+    height: 36rem;
     transform: rotate(-30deg);
   }
 }

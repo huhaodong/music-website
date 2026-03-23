@@ -49,6 +49,8 @@ export default defineComponent({
 .search {
   margin: auto;
   width: 900px;
+  background-color: $theme-background-color;
+  min-height: calc(100vh - 60px - 100px);
   
   .search-list {
     min-height: 480px;

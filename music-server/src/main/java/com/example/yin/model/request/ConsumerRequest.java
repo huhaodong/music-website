@@ -33,5 +33,7 @@ public class ConsumerRequest {
 
     private String avator;
 
+    private String nickname;
+
     private Date createTime;
 }

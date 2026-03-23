@@ -1,1 +1,1 @@
-export const MUSICNAME = 'Yin-music 后台管理'
+export const MUSICNAME = "SoundJoin曲库后台";

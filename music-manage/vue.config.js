@@ -9,5 +9,18 @@ module.exports = defineConfig({
       });
       return definitions;
     });
+  },
+  configureWebpack: {
+    resolve: {
+      fallback: {
+        path: false,
+        fs: false
+      }
+    }
+  },
+  css: {
+    extract: process.env.NODE_ENV === 'production' ? {
+      ignoreOrder: true
+    } : false
   }
 })

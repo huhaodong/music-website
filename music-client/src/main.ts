@@ -6,6 +6,7 @@ import store from "./store";
 import "element-plus/dist/index.css";
 import "./assets/css/index.scss";
 import "./assets/icons/index.js";
+import { getUserId, getUsername, getUserPic } from "@/utils/auth";
 
 import { ComponentCustomProperties } from "vue";
 import { Store } from "vuex";
@@ -19,4 +20,10 @@ declare module "@vue/runtime-core" {
   }
 }
 
-createApp(App).use(store).use(router).use(ElementPlus).mount("#app");
+const app = createApp(App);
+
+store.commit("setUserId", getUserId());
+store.commit("setUsername", getUsername());
+store.commit("setUserPic", getUserPic());
+
+app.use(store).use(router).use(ElementPlus).mount("#app");

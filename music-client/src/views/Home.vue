@@ -48,6 +48,10 @@ try {
 <style lang="scss" scoped>
 @import "@/assets/css/var.scss";
 
+:deep(.el-main) {
+  background-color: $theme-background-color;
+}
+
 /*轮播图*/
 .swiper-container {
   width: 90%;

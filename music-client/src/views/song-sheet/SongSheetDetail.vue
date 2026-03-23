@@ -27,8 +27,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, getCurrentInstance } from "vue";
+import { defineComponent, ref, computed, getCurrentInstance, onMounted } from "vue";
 import { useStore } from "vuex";
+import { useRoute } from "vue-router";
 import mixin from "@/mixins/mixin";
 import SongList from "@/components/SongList.vue";
 import Comment from "@/components/Comment.vue";
@@ -50,12 +51,29 @@ export default defineComponent({
     const nowRank = ref(0);
     const disabledRank = ref(false);
     const assistText = ref("评价");
-    // const evaluateList = ref(["很差", "较差", "还行", "推荐", "力推"]);
-    const songDetails = computed(() => store.getters.songDetails); // 单个歌单信息
+    const songDetails = ref<any>({}); // 单个歌单信息
     const nowUserId = computed(() => store.getters.userId);
-  
-    nowSongListId.value = songDetails.value.id; // 给歌单ID赋值
-  
+    const route = useRoute();
+
+    async function getSongListDetail(id) {
+      const result = (await HttpManager.getSongListById(id)) as ResponseBody;
+      if (result.data) {
+        songDetails.value = result.data;
+        store.commit("setSongDetails", songDetails.value);
+        nowSongListId.value = songDetails.value.id;
+        getSongId(songDetails.value.id);
+        getRank(songDetails.value.id);
+        if (nowUserId.value) {
+          getUserRank(nowUserId.value, songDetails.value.id);
+        }
+      }
+    }
+
+    onMounted(() => {
+      const id = route.params.id;
+      getSongListDetail(id);
+    });
+
     // 收集歌单里面的歌曲
     async function getSongId(id) {
       const result = (await HttpManager.getListSongOfSongId(id)) as ResponseBody;
@@ -100,10 +118,6 @@ export default defineComponent({
         console.error(error);
       }
     }
-
-    getUserRank(nowUserId.value, nowSongListId.value);
-    getRank(nowSongListId.value); // 获取评分
-    getSongId(nowSongListId.value); // 获取歌单里面的歌曲ID
 
     return {
       songDetails,

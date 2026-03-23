@@ -1,13 +1,29 @@
 import axios from 'axios'
 import router from '../router'
+import { getToken } from '../utils'
 
 const BASE_URL = process.env.NODE_HOST
 
 axios.defaults.timeout = 5000 // 超时时间设置
 axios.defaults.withCredentials = true // true允许跨域
 axios.defaults.baseURL = BASE_URL
-// Content-Type 响应头
-axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8'
+// Content-Type 响应头 - JSON格式
+axios.defaults.headers.post['Content-Type'] = 'application/json;charset=UTF-8'
+axios.defaults.headers.get['Content-Type'] = 'application/json;charset=UTF-8'
+
+// 请求拦截器 - 自动添加 JWT token
+axios.interceptors.request.use(
+  config => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  error => {
+    return Promise.reject(error);
+  }
+);
 
 // 响应拦截器
 axios.interceptors.response.use(

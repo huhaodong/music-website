@@ -53,6 +53,9 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
             consumer.setEmail(null);
         }
         consumer.setAvator("img/avatorImages/user.jpg");
+        if (StringUtils.isBlank(consumer.getNickname())) {
+            consumer.setNickname(generateDefaultNickname());
+        }
         try {
             QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("email",consumer.getEmail());
@@ -212,6 +215,30 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
         queryWrapper.eq("email",email);
         Consumer consumer = consumerMapper.selectOne(queryWrapper);
         return consumer;
+    }
+
+    private String generateDefaultNickname() {
+        QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("COALESCE(MAX(CAST(SUBSTRING(nickname, 5) AS UNSIGNED)), 0) as maxNum")
+                    .likeRight("nickname", "默认用户");
+        Consumer maxConsumer = consumerMapper.selectOne(queryWrapper);
+        int maxNum = 0;
+        if (maxConsumer != null) {
+            String maxNickname = maxConsumer.getNickname();
+            if (maxNickname != null && maxNickname.length() > 4) {
+                try {
+                    maxNum = Integer.parseInt(maxNickname.substring(4));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+
+        QueryWrapper<Consumer> countWrapper = new QueryWrapper<>();
+        countWrapper.likeRight("nickname", "默认用户");
+        long count = consumerMapper.selectCount(countWrapper);
+
+        int newNum = (int) count + 1;
+        return String.format("默认用户%03d", newNum);
     }
 
 }

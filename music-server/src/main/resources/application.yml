@@ -12,6 +12,14 @@ spring:
             class: javax.net.ssl.SSLSocketFactory
           starttls:
             enable: true
+  flyway:
+    enabled: false
+
+jwt:
+  secret: your-256-bit-secret-key-for-jwt-token-generation-minimum-32-chars
+  access-token-expiration: 7200000
+  refresh-token-expiration: 604800000
+
 mail:
   address:   # 开启那个服务的邮箱
 

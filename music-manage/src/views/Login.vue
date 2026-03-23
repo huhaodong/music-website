@@ -22,6 +22,8 @@ import { defineComponent, getCurrentInstance, ref, reactive } from "vue";
 import mixin from "@/mixins/mixin";
 import { HttpManager } from "@/api/index";
 import { RouterName, MUSICNAME } from "@/enums";
+import { ElMessage } from "element-plus";
+import { setToken, setRefreshToken } from "@/utils";
 
 export default defineComponent({
   setup() {
@@ -37,17 +39,37 @@ export default defineComponent({
       username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
       password: [{ required: true, message: "请输入密码", trigger: "blur" }],
     });
-    async function submitForm() {
-      let username = ruleForm.username;
-      let password = ruleForm.password;
-      const result = (await HttpManager.getLoginStatus({username,password})) as ResponseBody;
-      (proxy as any).$message({
-        message: result.message,
-        type: result.type,
-      });
 
-      if (result.success) routerManager(RouterName.Info, { path: RouterName.Info });
+    async function submitForm() {
+      const username = ruleForm.username;
+      const password = ruleForm.password;
+
+      try {
+        const result = await HttpManager.login({ username, password, userType: "admin" }) as ResponseBody;
+
+        ElMessage({
+          message: result.message,
+          type: result.type as "success" | "warning" | "info" | "error",
+        });
+
+        if (result.success) {
+          // 存储 JWT token
+          const data = result.data as {
+            accessToken: string;
+            refreshToken: string;
+          };
+          setToken(data.accessToken);
+          setRefreshToken(data.refreshToken);
+          routerManager(RouterName.Info, { path: RouterName.Info });
+        }
+      } catch (error) {
+        ElMessage({
+          message: "登录失败，请检查用户名和密码",
+          type: "error",
+        });
+      }
     }
+
     return {
       nusicName,
       ruleForm,
