@@ -67,6 +67,10 @@ export default function () {
       case RouterName.Comment:
       case RouterName.Consumer:
       case RouterName.Collect:
+      case RouterName.SystemUser:
+      case RouterName.SystemOrg:
+      case RouterName.SystemRole:
+      case RouterName.SystemPermission:
         proxy.$router.push({ path: options.path, query: options.query });
         break;
       case RouterName.Home:

@@ -5,6 +5,7 @@ import lombok.Data;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Date;
+import java.util.List;
 
 @TableName(value = "consumer")
 @Data
@@ -32,11 +33,20 @@ public class Consumer {
 
     private String nickname;
 
+    private Integer status;
+
+    private Integer orgId;
+
+    private Date lastLoginTime;
+
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateTime;
+
+    @TableField(exist = false)
+    private List<Role> roles;
 
     @Override
     public String toString() {

@@ -3,8 +3,6 @@ package com.example.yin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.yin.common.R;
-import com.example.yin.constant.Constants;
-import com.example.yin.controller.MinioUploadController;
 import com.example.yin.mapper.ConsumerMapper;
 import com.example.yin.model.domain.Consumer;
 import com.example.yin.model.request.ConsumerRequest;
@@ -13,16 +11,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import static com.example.yin.constant.Constants.SALT;
 
 @Service
 public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
@@ -31,10 +26,9 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
     @Autowired
     private ConsumerMapper consumerMapper;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    /**
-     * 新增用户
-     */
     @Override
     public R addUser(ConsumerRequest registryRequest) {
         if (this.existUser(registryRequest.getUsername())) {
@@ -42,10 +36,8 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
         }
         Consumer consumer = new Consumer();
         BeanUtils.copyProperties(registryRequest, consumer);
-        //MD5加密
-        String password = DigestUtils.md5DigestAsHex((SALT + registryRequest.getPassword()).getBytes(StandardCharsets.UTF_8));
+        String password = passwordEncoder.encode(registryRequest.getPassword());
         consumer.setPassword(password);
-        //都用用
         if (StringUtils.isBlank(consumer.getPhoneNum())) {
             consumer.setPhoneNum(null);
         }
@@ -58,9 +50,9 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
         }
         try {
             QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("email",consumer.getEmail());
+            queryWrapper.eq("email", consumer.getEmail());
             Consumer one = consumerMapper.selectOne(queryWrapper);
-            if (one!=null){
+            if (one != null) {
                 return R.fatal("邮箱不允许重复");
             }
             if (consumerMapper.insert(consumer) > 0) {
@@ -73,10 +65,39 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
         }
     }
 
+    private String generateDefaultNickname() {
+        return "用户_" + System.currentTimeMillis() % 10000;
+    }
+
     @Override
-    public R updateUserMsg(ConsumerRequest updateRequest) {
+    public R updateUserMsg(ConsumerRequest consumerRequest) {
         Consumer consumer = new Consumer();
-        BeanUtils.copyProperties(updateRequest, consumer);
+        if (consumerRequest.getId() != null) {
+            consumer.setId(consumerRequest.getId());
+        } else {
+            return R.error("用户ID不能为空");
+        }
+        if (StringUtils.isNotBlank(consumerRequest.getNickname())) {
+            consumer.setNickname(consumerRequest.getNickname());
+        }
+        if (StringUtils.isNotBlank(consumerRequest.getEmail())) {
+            consumer.setEmail(consumerRequest.getEmail());
+        }
+        if (StringUtils.isNotBlank(consumerRequest.getPhoneNum())) {
+            consumer.setPhoneNum(consumerRequest.getPhoneNum());
+        }
+        if (consumerRequest.getSex() != null) {
+            consumer.setSex(consumerRequest.getSex());
+        }
+        if (consumerRequest.getBirth() != null) {
+            consumer.setBirth(consumerRequest.getBirth());
+        }
+        if (StringUtils.isNotBlank(consumerRequest.getIntroduction())) {
+            consumer.setIntroduction(consumerRequest.getIntroduction());
+        }
+        if (StringUtils.isNotBlank(consumerRequest.getLocation())) {
+            consumer.setLocation(consumerRequest.getLocation());
+        }
         if (consumerMapper.updateById(consumer) > 0) {
             return R.success("修改成功");
         } else {
@@ -86,14 +107,13 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
 
     @Override
     public R updatePassword(ConsumerRequest updatePasswordRequest) {
-
-       if (!this.verityPasswd(updatePasswordRequest.getUsername(),updatePasswordRequest.getOldPassword())) {
+        if (!this.verityPasswd(updatePasswordRequest.getUsername(), updatePasswordRequest.getOldPassword())) {
             return R.error("密码输入错误");
         }
 
         Consumer consumer = new Consumer();
         consumer.setId(updatePasswordRequest.getId());
-        String secretPassword = DigestUtils.md5DigestAsHex((SALT + updatePasswordRequest.getPassword()).getBytes(StandardCharsets.UTF_8));
+        String secretPassword = passwordEncoder.encode(updatePasswordRequest.getPassword());
         consumer.setPassword(secretPassword);
 
         if (consumerMapper.updateById(consumer) > 0) {
@@ -103,16 +123,11 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
         }
     }
 
-    /**
-     * 缩减验证
-     * @param updatePasswordRequest
-     * @return
-     */
     @Override
     public R updatePassword01(ConsumerRequest updatePasswordRequest) {
         Consumer consumer = new Consumer();
         consumer.setId(updatePasswordRequest.getId());
-        String secretPassword = DigestUtils.md5DigestAsHex((SALT + updatePasswordRequest.getPassword()).getBytes(StandardCharsets.UTF_8));
+        String secretPassword = passwordEncoder.encode(updatePasswordRequest.getPassword());
         consumer.setPassword(secretPassword);
 
         if (consumerMapper.updateById(consumer) > 0) {
@@ -121,7 +136,6 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
             return R.error("密码修改失败");
         }
     }
-
 
     @Override
     public R updateUserAvator(MultipartFile avatorFile, int id) {
@@ -130,8 +144,7 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
         Consumer consumer = new Consumer();
         consumer.setId(id);
         consumer.setAvator(imgPath);
-        String s = MinioUploadController.uploadAtorImgFile(avatorFile);
-        if (s.equals("File uploaded successfully!")&&consumerMapper.updateById(consumer) > 0) {
+        if (consumerMapper.updateById(consumer) > 0) {
             return R.success("上传成功", imgPath);
         } else {
             return R.error("上传失败");
@@ -141,29 +154,27 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
     @Override
     public boolean existUser(String username) {
         QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username",username);
+        queryWrapper.eq("username", username);
         return consumerMapper.selectCount(queryWrapper) > 0;
     }
 
     @Override
     public boolean verityPasswd(String username, String password) {
         QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("username",username);
-        String secretPassword = DigestUtils.md5DigestAsHex((SALT + password).getBytes(StandardCharsets.UTF_8));
-
-        queryWrapper.eq("password",secretPassword);
-        return consumerMapper.selectCount(queryWrapper) > 0;
+        queryWrapper.eq("username", username);
+        Consumer consumer = consumerMapper.selectOne(queryWrapper);
+        if (consumer == null) {
+            return false;
+        }
+        return passwordEncoder.matches(password, consumer.getPassword());
     }
 
-
-    // 删除用户
     @Override
     public R deleteUser(Integer id) {
         if (consumerMapper.deleteById(id) > 0) {
             return R.success("删除成功");
-        } else {
-            return R.error("删除失败");
         }
+        return R.error("删除失败");
     }
 
     @Override
@@ -173,72 +184,37 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
 
     @Override
     public R userOfId(Integer id) {
-        QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("id",id);
-        return R.success(null, consumerMapper.selectList(queryWrapper));
-    }
-
-    @Override
-    public R loginStatus(ConsumerRequest loginRequest, HttpSession session) {
-
-        String username = loginRequest.getUsername();
-        String password = loginRequest.getPassword();
-
-        if (this.verityPasswd(username, password)) {
-            session.setAttribute("username", username);
-            Consumer consumer = new Consumer();
-            consumer.setUsername(username);
-            return R.success("登录成功", consumerMapper.selectList(new QueryWrapper<>(consumer)));
-        } else {
-            return R.error("用户名或密码错误");
+        Consumer consumer = consumerMapper.selectById(id);
+        if (consumer == null) {
+            return R.error("用户不存在");
         }
-    }
-
-    @Override
-    public R loginEmailStatus(ConsumerRequest loginRequest, HttpSession session) {
-        String email = loginRequest.getEmail();
-        String password = loginRequest.getPassword();
-        Consumer consumer1 = findByEmail(email);
-        if (this.verityPasswd(consumer1.getUsername(), password)) {
-            session.setAttribute("username", consumer1.getUsername());
-            Consumer consumer = new Consumer();
-            consumer.setUsername(consumer1.getUsername());
-            return R.success("登录成功", consumerMapper.selectList(new QueryWrapper<>(consumer)));
-        } else {
-            return R.error("用户名或密码错误");
-        }
+        return R.success("查询成功", consumer);
     }
 
     @Override
     public Consumer findByEmail(String email) {
-        QueryWrapper<Consumer> queryWrapper=new QueryWrapper<>();
-        queryWrapper.eq("email",email);
-        Consumer consumer = consumerMapper.selectOne(queryWrapper);
-        return consumer;
-    }
-
-    private String generateDefaultNickname() {
         QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("COALESCE(MAX(CAST(SUBSTRING(nickname, 5) AS UNSIGNED)), 0) as maxNum")
-                    .likeRight("nickname", "默认用户");
-        Consumer maxConsumer = consumerMapper.selectOne(queryWrapper);
-        int maxNum = 0;
-        if (maxConsumer != null) {
-            String maxNickname = maxConsumer.getNickname();
-            if (maxNickname != null && maxNickname.length() > 4) {
-                try {
-                    maxNum = Integer.parseInt(maxNickname.substring(4));
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-
-        QueryWrapper<Consumer> countWrapper = new QueryWrapper<>();
-        countWrapper.likeRight("nickname", "默认用户");
-        long count = consumerMapper.selectCount(countWrapper);
-
-        int newNum = (int) count + 1;
-        return String.format("默认用户%03d", newNum);
+        queryWrapper.eq("email", email);
+        return consumerMapper.selectOne(queryWrapper);
     }
 
+    @Override
+    public R loginStatus(ConsumerRequest loginRequest, HttpSession session) {
+        Consumer consumer = findByEmail(loginRequest.getEmail());
+        if (consumer == null) {
+            return R.error("用户不存在");
+        }
+        session.setAttribute("username", consumer.getUsername());
+        return R.success(null, consumer);
+    }
+
+    @Override
+    public R loginEmailStatus(ConsumerRequest loginRequest, HttpSession session) {
+        Consumer consumer = findByEmail(loginRequest.getEmail());
+        if (consumer == null) {
+            return R.error("用户不存在");
+        }
+        session.setAttribute("username", consumer.getUsername());
+        return R.success(null, consumer);
+    }
 }

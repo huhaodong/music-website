@@ -1,11 +1,14 @@
 package com.example.yin.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.example.yin.constant.Constants;
-import com.example.yin.mapper.AdminMapper;
 import com.example.yin.mapper.ConsumerMapper;
-import com.example.yin.model.domain.Admin;
+import com.example.yin.mapper.PermissionMapper;
+import com.example.yin.mapper.RolePermissionMapper;
+import com.example.yin.mapper.UserRoleMapper;
 import com.example.yin.model.domain.Consumer;
+import com.example.yin.model.domain.Permission;
+import com.example.yin.model.domain.RolePermission;
+import com.example.yin.model.domain.UserRole;
 import com.example.yin.model.request.AuthRequest;
 import com.example.yin.model.response.AuthResponse;
 import com.example.yin.security.JwtTokenProvider;
@@ -13,9 +16,9 @@ import com.example.yin.security.TokenBlacklistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class AuthService {
@@ -30,10 +33,16 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private AdminMapper adminMapper;
+    private ConsumerMapper consumerMapper;
 
     @Autowired
-    private ConsumerMapper consumerMapper;
+    private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private RolePermissionMapper rolePermissionMapper;
+
+    @Autowired
+    private PermissionMapper permissionMapper;
 
     public AuthResponse login(AuthRequest request) {
         String username = request.getUsername();
@@ -48,19 +57,26 @@ public class AuthService {
     }
 
     private AuthResponse loginAsAdmin(String username, String password) {
-        Admin admin = findAdminByUsername(username);
-        if (admin == null) {
+        Consumer consumer = findConsumerByUsername(username);
+        if (consumer == null) {
             throw new RuntimeException("用户不存在");
         }
-        if (!passwordEncoder.matches(password, admin.getPassword())) {
+
+        if (!passwordEncoder.matches(password, consumer.getPassword())) {
             throw new RuntimeException("密码错误");
         }
 
-        String roles = "ROLE_ADMIN";
-        String accessToken = tokenProvider.generateAccessToken(username, roles);
+        boolean hasAdminPermission = checkUserHasPermission(consumer.getId(), "system:admin:login");
+        if (!hasAdminPermission) {
+            throw new RuntimeException("无后台访问权限");
+        }
+
+        List<String> roles = getUserRoles(consumer.getId(), "consumer");
+        String rolesStr = roles.isEmpty() ? "ROLE_USER" : String.join(",", roles);
+        String accessToken = tokenProvider.generateAccessToken(username, rolesStr);
         String refreshToken = tokenProvider.generateRefreshToken(username);
 
-        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(admin.getId(), username, roles);
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(consumer.getId(), username, rolesStr);
         AuthResponse response = new AuthResponse(accessToken, refreshToken,
                 tokenProvider.getAccessTokenExpiration() / 1000);
         response.setUser(userInfo);
@@ -72,20 +88,62 @@ public class AuthService {
         if (consumer == null) {
             throw new RuntimeException("用户不存在");
         }
-        String secretPassword = DigestUtils.md5DigestAsHex((Constants.SALT + password).getBytes(StandardCharsets.UTF_8));
-        if (!secretPassword.equals(consumer.getPassword())) {
+
+        if (!passwordEncoder.matches(password, consumer.getPassword())) {
             throw new RuntimeException("密码错误");
         }
 
-        String roles = "ROLE_USER";
-        String accessToken = tokenProvider.generateAccessToken(username, roles);
+        List<String> roles = getUserRoles(consumer.getId(), "consumer");
+        String rolesStr = roles.isEmpty() ? "ROLE_USER" : String.join(",", roles);
+        String accessToken = tokenProvider.generateAccessToken(username, rolesStr);
         String refreshToken = tokenProvider.generateRefreshToken(username);
 
-        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(consumer.getId(), username, roles);
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(consumer.getId(), username, rolesStr);
         AuthResponse response = new AuthResponse(accessToken, refreshToken,
                 tokenProvider.getAccessTokenExpiration() / 1000);
         response.setUser(userInfo);
         return response;
+    }
+
+    private boolean checkUserHasPermission(Integer userId, String permissionCode) {
+        QueryWrapper<UserRole> userRoleQueryWrapper = new QueryWrapper<>();
+        userRoleQueryWrapper.eq("user_id", userId);
+        userRoleQueryWrapper.eq("user_type", "consumer");
+        List<UserRole> userRoles = userRoleMapper.selectList(userRoleQueryWrapper);
+
+        if (userRoles.isEmpty()) {
+            return false;
+        }
+
+        for (UserRole userRole : userRoles) {
+            QueryWrapper<RolePermission> rpQueryWrapper = new QueryWrapper<>();
+            rpQueryWrapper.eq("role_id", userRole.getRoleId());
+            List<RolePermission> rolePermissions = rolePermissionMapper.selectList(rpQueryWrapper);
+
+            for (RolePermission rp : rolePermissions) {
+                QueryWrapper<Permission> permQueryWrapper = new QueryWrapper<>();
+                permQueryWrapper.eq("id", rp.getPermissionId());
+                permQueryWrapper.eq("code", permissionCode);
+                Long count = permissionMapper.selectCount(permQueryWrapper);
+                if (count > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private List<String> getUserRoles(Integer userId, String userType) {
+        QueryWrapper<UserRole> userRoleQueryWrapper = new QueryWrapper<>();
+        userRoleQueryWrapper.eq("user_id", userId);
+        userRoleQueryWrapper.eq("user_type", userType);
+        List<UserRole> userRoles = userRoleMapper.selectList(userRoleQueryWrapper);
+
+        List<String> roles = new ArrayList<>();
+        for (UserRole ur : userRoles) {
+            roles.add("ROLE_" + ur.getRoleId());
+        }
+        return roles;
     }
 
     public AuthResponse refresh(String refreshToken) {
@@ -120,12 +178,6 @@ public class AuthService {
         } catch (Exception e) {
             return 0;
         }
-    }
-
-    private Admin findAdminByUsername(String username) {
-        QueryWrapper<Admin> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("name", username);
-        return adminMapper.selectOne(queryWrapper);
     }
 
     private Consumer findConsumerByUsername(String username) {

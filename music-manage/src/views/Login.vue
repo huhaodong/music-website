@@ -32,8 +32,8 @@ export default defineComponent({
 
     const nusicName = ref(MUSICNAME);
     const ruleForm = reactive({
-      username: "admin",
-      password: "123",
+      username: "",
+      password: "",
     });
     const rules = reactive({
       username: [{ required: true, message: "请输入用户名", trigger: "blur" }],

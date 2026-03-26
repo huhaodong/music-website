@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { getToken } from '@/utils'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -45,8 +46,63 @@ const routes: Array<RouteRecordRaw> = [
         path: '/Collect',
         component: () => import('@/views/CollectPage.vue'),
         meta: { title: 'Collect' }
+      },
+      // RBAC权限系统路由 - Home子路由
+      {
+        path: '/Home/user',
+        component: () => import('@/views/UserManage.vue'),
+        meta: { title: '用户管理' }
+      },
+      {
+        path: '/Home/org',
+        component: () => import('@/views/OrgManage.vue'),
+        meta: { title: '组织管理' }
+      },
+      {
+        path: '/Home/role',
+        component: () => import('@/views/RoleManage.vue'),
+        meta: { title: '角色管理' }
+      },
+      {
+        path: '/Home/permission',
+        component: () => import('@/views/PermissionManage.vue'),
+        meta: { title: '权限管理' }
       }
     ]
+  },
+  // 兼容旧路径重定向到新路径
+  {
+    path: '/system/user',
+    redirect: '/Home/user'
+  },
+  {
+    path: '/system/org',
+    redirect: '/Home/org'
+  },
+  {
+    path: '/system/role',
+    redirect: '/Home/role'
+  },
+  {
+    path: '/system/permission',
+    redirect: '/Home/permission'
+  },
+  // 兼容 /user 路径重定向
+  {
+    path: '/user',
+    redirect: '/Home/user'
+  },
+  {
+    path: '/org',
+    redirect: '/Home/org'
+  },
+  {
+    path: '/role',
+    redirect: '/Home/role'
+  },
+  {
+    path: '/permission',
+    redirect: '/Home/permission'
   },
   {
     path: '/',
@@ -58,5 +114,16 @@ const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes
 })
+
+router.beforeEach((to, from, next) => {
+  const publicPages = ['/', '/Login'];
+  const authRequired = !publicPages.includes(to.path);
+
+  if (authRequired && !getToken()) {
+    next('/');
+  } else {
+    next();
+  }
+});
 
 export default router

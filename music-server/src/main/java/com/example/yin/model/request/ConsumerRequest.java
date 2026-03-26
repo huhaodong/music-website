@@ -1,6 +1,7 @@
 package com.example.yin.model.request;
 
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
 
@@ -15,7 +16,7 @@ public class ConsumerRequest {
 
     private String username;
 
-    private String oldPassword; //因为会用到用户旧密码 这无所谓的对应即可
+    private String oldPassword;
 
     private String password;
 
@@ -36,4 +37,12 @@ public class ConsumerRequest {
     private String nickname;
 
     private Date createTime;
+
+    private MultipartFile avatarFile;
+
+    private String code;
+
+    private Integer roleId;
+
+    private Integer status;
 }

@@ -33,6 +33,7 @@ import { Expand, Fold } from "@element-plus/icons-vue";
 import emitter from "@/utils/emitter";
 import { HttpManager } from "@/api";
 import { RouterName, MUSICNAME } from "@/enums";
+import { removeToken } from "@/utils";
 
 export default defineComponent({
   components: {
@@ -60,9 +61,16 @@ export default defineComponent({
       emitter.emit("collapse", collapse.value);
     }
     // 用户名下拉菜单选择事件
-    function handleCommand(command) {
+    async function handleCommand(command) {
       if (command === "loginout") {
-        routerManager(RouterName.SignIn, { path: RouterName.SignIn });
+        try {
+          await HttpManager.logout();
+        } catch (error) {
+          console.error("Logout API call failed:", error);
+        } finally {
+          removeToken();
+          routerManager(RouterName.SignIn, { path: RouterName.SignIn });
+        }
       }
     }
     return {

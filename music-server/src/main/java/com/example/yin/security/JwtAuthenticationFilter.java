@@ -12,6 +12,7 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +41,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 String username = tokenProvider.getUsernameFromToken(jwt);
                 String roles = tokenProvider.getRolesFromToken(jwt);
+
+                // 设置 session 属性
+                HttpSession session = request.getSession(true);
+                session.setAttribute("username", username);
+                session.setAttribute("name", username);
 
                 List<SimpleGrantedAuthority> authorities = Arrays.stream(roles.split(","))
                         .filter(StringUtils::hasText)

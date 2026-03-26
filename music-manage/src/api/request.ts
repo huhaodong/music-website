@@ -95,11 +95,12 @@ export function get(url, params?: object) {
  * 封装post请求
  * @param url
  * @param data
+ * @param config 可选的配置对象（如 headers）
  * @returns {Promise}
  */
-export function post(url, data = {}) {
+export function post(url, data = {}, config = {}) {
   return new Promise((resolve, reject) => {
-    axios.post(url, data).then(
+    axios.post(url, data, config).then(
       response => resolve(response.data),
       error => reject(error)
     );
