@@ -103,6 +103,12 @@ public class PermissionAspect {
         if (authorities == null || authorities.isEmpty()) {
             return null;
         }
+        for (GrantedAuthority authority : authorities) {
+            String auth = authority.getAuthority();
+            if (auth != null && (auth.contains("ADMIN") || auth.contains("admin"))) {
+                return "admin";
+            }
+        }
         return "consumer";
     }
 

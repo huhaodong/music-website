@@ -1,5 +1,6 @@
 package com.example.yin.controller;
 
+import com.example.yin.annotation.RequirePermission;
 import com.example.yin.common.R;
 import com.example.yin.model.request.SongRequest;
 import com.example.yin.service.SongService;
@@ -39,18 +40,21 @@ public class SongController {
 
     // 添加歌曲
     @PostMapping("/song/add")
+    @RequirePermission("song:add")
     public R addSong(SongRequest addSongRequest,@RequestParam("lrcfile") MultipartFile lrcfile, @RequestParam("file") MultipartFile mpfile) {
         return songService.addSong(addSongRequest,lrcfile,mpfile);
     }
 
     // 删除歌曲
     @DeleteMapping("/song/delete")
+    @RequirePermission("song:delete")
     public R deleteSong(@RequestParam int id) {
         return songService.deleteSong(id);
     }
 
     // 返回所有歌曲
     @GetMapping("/song")
+    @RequirePermission("song:list")
     public R allSong() {
         return songService.allSong();
     }
@@ -58,6 +62,7 @@ public class SongController {
     //TODO ok
     // 返回指定歌曲ID的歌曲
     @GetMapping("/song/detail")
+    @RequirePermission("song:detail")
     public R songOfId(@RequestParam int id) {
         return songService.songOfId(id);
     }
@@ -77,6 +82,7 @@ public class SongController {
 
     // 更新歌曲信息
     @PostMapping("/song/update")
+    @RequirePermission("song:edit")
     public R updateSongMsg(@RequestBody SongRequest updateSongRequest) {
         return songService.updateSongMsg(updateSongRequest);
     }

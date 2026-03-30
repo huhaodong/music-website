@@ -16,6 +16,8 @@ public class Organization {
 
     private String name;
 
+    private String code;
+
     private Integer parentId;
 
     private Integer level;

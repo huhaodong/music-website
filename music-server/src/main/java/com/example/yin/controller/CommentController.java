@@ -1,5 +1,6 @@
 package com.example.yin.controller;
 
+import com.example.yin.annotation.RequirePermission;
 import com.example.yin.common.R;
 import com.example.yin.model.request.CommentRequest;
 import com.example.yin.service.CommentService;
@@ -14,18 +15,21 @@ public class CommentController {
 
     // 提交评论
     @PostMapping("/comment/add")
+    @RequirePermission("comment:add")
     public R addComment(@RequestBody CommentRequest addCommentRequest) {
         return commentService.addComment(addCommentRequest);
     }
 
     // 删除评论
     @GetMapping("/comment/delete")
+    @RequirePermission("comment:delete")
     public R deleteComment(@RequestParam Integer id) {
         return commentService.deleteComment(id);
     }
 
     // 获得指定歌曲 ID 的评论列表
     @GetMapping("/comment/song/detail")
+    @RequirePermission("comment:list")
     public R commentOfSongId(@RequestParam Integer songId) {
         return commentService.commentOfSongId(songId);
     }

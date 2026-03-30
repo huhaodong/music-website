@@ -2,6 +2,7 @@ package com.example.yin.controller;
 
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.util.ListUtils;
+import com.example.yin.annotation.RequirePermission;
 import com.example.yin.model.domain.SongList;
 import com.example.yin.service.SongListService;
 import com.example.yin.utils.TestFileUtil;
@@ -40,6 +41,7 @@ public class FileDownloadController {
     private String bucketName;
 
     @GetMapping("/{fileName}")
+    @RequirePermission("song:download")
     public ResponseEntity<Resource> downloadFile(@PathVariable String fileName, HttpServletRequest request) throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
 
         GetObjectArgs args = GetObjectArgs.builder()

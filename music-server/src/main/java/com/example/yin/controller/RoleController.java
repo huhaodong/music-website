@@ -1,5 +1,6 @@
 package com.example.yin.controller;
 
+import com.example.yin.annotation.RequirePermission;
 import com.example.yin.common.R;
 import com.example.yin.model.request.RoleRequest;
 import com.example.yin.service.RoleService;
@@ -14,26 +15,31 @@ public class RoleController {
     private RoleService roleService;
 
     @PostMapping("/add")
+    @RequirePermission("role:add")
     public R addRole(@RequestBody RoleRequest roleRequest) {
         return roleService.addRole(roleRequest);
     }
 
     @PutMapping("/update")
+    @RequirePermission("role:edit")
     public R updateRole(@RequestBody RoleRequest roleRequest) {
         return roleService.updateRole(roleRequest);
     }
 
     @DeleteMapping("/delete")
+    @RequirePermission("role:delete")
     public R deleteRole(@RequestParam Integer id) {
         return roleService.deleteRole(id);
     }
 
     @GetMapping("/detail")
+    @RequirePermission("role:detail")
     public R getRoleById(@RequestParam Integer id) {
         return roleService.getRoleById(id);
     }
 
     @GetMapping("/list")
+    @RequirePermission("role:list")
     public R getAllRoles() {
         return roleService.getAllRoles();
     }

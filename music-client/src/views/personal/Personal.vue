@@ -61,12 +61,14 @@ export default defineComponent({
     }
     async function getUserInfo(id) {
       const result = (await HttpManager.getUserOfId(id)) as ResponseBody;
-      personalInfo.username = result.data[0].username;
-      personalInfo.nickname = result.data[0].nickname;
-      personalInfo.userSex = result.data[0].sex;
-      personalInfo.birth = result.data[0].birth;
-      personalInfo.introduction = result.data[0].introduction;
-      personalInfo.location = result.data[0].location;
+      if (result.data) {
+        personalInfo.username = result.data.username || "";
+        personalInfo.nickname = result.data.nickname || "";
+        personalInfo.userSex = result.data.sex || "";
+        personalInfo.birth = result.data.birth || "";
+        personalInfo.introduction = result.data.introduction || "";
+        personalInfo.location = result.data.location || "";
+      }
     }
     // 获取收藏的歌曲
     async function getCollection(userId) {

@@ -1,5 +1,6 @@
 package com.example.yin.controller;
 
+import com.example.yin.annotation.RequirePermission;
 import com.example.yin.common.R;
 import com.example.yin.model.request.PermissionRequest;
 import com.example.yin.model.request.RolePermissionRequest;
@@ -52,6 +53,7 @@ public class PermissionController {
     }
 
     @PostMapping("/assign")
+    @RequirePermission("role:assign")
     public R assignPermissionsToRole(@RequestBody RolePermissionRequest request) {
         return permissionService.assignPermissionsToRole(request.getRoleId(), request.getPermissionIds());
     }
