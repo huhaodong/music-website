@@ -47,7 +47,7 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>2.1.214</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
 
         <!--mysql-connector-java就是帮助java程序操作mysql的驱动程序。通过与mysql服务端建立连接，发送sql语句并且获取结果集-->
