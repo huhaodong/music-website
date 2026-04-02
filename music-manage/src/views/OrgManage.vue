@@ -131,7 +131,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, getCurrentInstance, ref, reactive } from "vue";
+import { defineComponent, getCurrentInstance, ref, reactive, computed } from "vue";
 import { SystemManager, HttpManager } from "@/api/index";
 import YinDelDialog from "@/components/dialog/YinDelDialog.vue";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -174,10 +174,12 @@ export default defineComponent({
     }
 
     function extractOrgArray(payload: any): any[] {
-      // 兼容不同后端分页/包装结构：data / data.records / data.list
+      // 兼容不同后端分页/包装结构：data / data.data / data.records / data.list / data.rows
       if (Array.isArray(payload)) return payload;
+      if (Array.isArray(payload?.data)) return payload.data;
       if (Array.isArray(payload?.records)) return payload.records;
       if (Array.isArray(payload?.list)) return payload.list;
+      if (Array.isArray(payload?.rows)) return payload.rows;
       return [];
     }
 
@@ -360,11 +362,63 @@ export default defineComponent({
     const memberTableRef = ref();
     const selectedMembers = ref<any[]>([]);
 
+    function getSelectedOrgId(): number | null {
+      const val = selectedOrg.value?.id ?? selectedOrg.value?.orgId ?? selectedOrg.value?.org_id ?? null;
+      return val == null ? null : Number(val);
+    }
+
+    function getUserOrgId(user: any): number | null {
+      const val =
+        user?.orgId ??
+        user?.org_id ??
+        user?.organizationId ??
+        user?.organization_id ??
+        user?.org?.id ??
+        null;
+      // 兼容 0 / undefined / null
+      return val === 0 || val == null ? null : Number(val);
+    }
+
+    function normalizeUser(raw: any) {
+      const orgId = getUserOrgId(raw);
+      return {
+        ...raw,
+        id: raw?.id,
+        username: raw?.username ?? raw?.userName ?? "",
+        nickname: raw?.nickname ?? raw?.nickName ?? "",
+        email: raw?.email ?? "",
+        // el-table 列里用的是 phoneNum，这里做字段兜底
+        phoneNum: raw?.phoneNum ?? raw?.phone ?? raw?.phone_number ?? "",
+        // 后续筛选/更新统一走 orgId
+        orgId,
+        status: raw?.status ?? 1,
+      };
+    }
+
+    const availableMembers = computed(() => {
+      const currentOrgId = getSelectedOrgId();
+      // 未选择组织时不展示可选成员，避免误操作
+      if (currentOrgId == null) return [];
+      // 过滤掉已属于当前组织的成员（可被重新分配到当前组织的其他用户仍可见）
+      return allUsers.value.filter((u) => (u?.orgId ?? null) !== Number(currentOrgId));
+    });
+
+    function updateLocalUserOrg(userId: number, orgId: number | null) {
+      const idx = allUsers.value.findIndex((u) => Number(u?.id) === Number(userId));
+      if (idx >= 0) {
+        allUsers.value[idx] = { ...allUsers.value[idx], orgId };
+      }
+    }
+
     async function getAllUsers() {
       try {
-        const result = (await SystemManager.getAllUsers()) as ResponseBody;
-        if (result.data) {
-          allUsers.value = result.data;
+        const result = (await SystemManager.getAllUsers()) as any;
+        const users = extractOrgArray(result?.data);
+        allUsers.value = (users || []).map(normalizeUser);
+        // 若已选中组织，刷新成员列表，避免“先点组织后加载用户”导致成员为空
+        const currentOrgId = getSelectedOrgId();
+        if (currentOrgId != null) {
+          await loadMembers(Number(currentOrgId));
         }
       } catch (error) {
         console.error("获取用户列表失败", error);
@@ -372,12 +426,13 @@ export default defineComponent({
     }
 
     async function loadMembers(orgId: number) {
-      memberList.value = allUsers.value.filter(user => user.orgId === orgId);
+      memberList.value = allUsers.value.filter((user) => (user?.orgId ?? null) === orgId);
     }
 
     function handleNodeClick(data: any) {
       selectedOrg.value = data;
-      loadMembers(data.id);
+      const orgId = data?.id ?? data?.orgId ?? data?.org_id;
+      if (orgId != null) loadMembers(Number(orgId));
     }
 
     function showAddMemberDialog() {
@@ -402,15 +457,21 @@ export default defineComponent({
         return;
       }
       try {
+        const orgId = getSelectedOrgId();
+        if (orgId == null) {
+          ElMessage.warning("请先选择一个组织");
+          return;
+        }
         for (const member of selectedMembers.value) {
           await SystemManager.updateUser({
             id: member.id,
-            orgId: selectedOrg.value.id,
+            orgId,
           });
+          updateLocalUserOrg(member.id, orgId);
         }
         ElMessage.success("添加成员成功");
         addMemberDialogVisible.value = false;
-        loadMembers(selectedOrg.value.id);
+        loadMembers(orgId);
       } catch (error: any) {
         ElMessage.error(getErrorMessage(error, "添加成员失败"));
       }
@@ -427,8 +488,10 @@ export default defineComponent({
           id: member.id,
           orgId: null,
         });
+        updateLocalUserOrg(member.id, null);
         ElMessage.success("移除成员成功");
-        loadMembers(selectedOrg.value.id);
+        const orgId = getSelectedOrgId();
+        if (orgId != null) loadMembers(orgId);
       } catch (error: any) {
         if (error !== "cancel") {
           ElMessage.error(getErrorMessage(error, "移除成员失败"));
@@ -452,6 +515,7 @@ export default defineComponent({
       parentOrgName,
       delVisible,
       memberList,
+      availableMembers,
       addMemberDialogVisible,
       memberTableRef,
       handleNodeClick,
