@@ -2,7 +2,6 @@ package com.example.yin.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.yin.common.R;
-import com.example.yin.model.domain.Admin;
 import com.example.yin.model.domain.Consumer;
 import com.example.yin.model.request.ConsumerRequest;
 

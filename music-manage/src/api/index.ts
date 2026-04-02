@@ -4,7 +4,7 @@ const HttpManager = {
     // 获取图片信息
     attachImageUrl: (url) => `${getBaseURL()}/${url}`,
     // =======================> 认证 API
-    // JWT 登录
+    // JWT 登录（返回完整 R 对象：{ code, success, message, data }）
     login: ({ username, password, userType }) => post(`auth/login`, { username, password, userType }),
     // JWT 登出
     logout: () => post(`auth/logout`),

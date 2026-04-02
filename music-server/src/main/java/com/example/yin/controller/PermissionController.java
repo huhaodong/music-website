@@ -53,7 +53,7 @@ public class PermissionController {
     }
 
     @PostMapping("/assign")
-    @RequirePermission("role:assign")
+    @RequirePermission(codes = {"role:assign", "role:update", "system:role:assign-permission"})
     public R assignPermissionsToRole(@RequestBody RolePermissionRequest request) {
         return permissionService.assignPermissionsToRole(request.getRoleId(), request.getPermissionIds());
     }

@@ -4,7 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.yin.common.R;
 import com.example.yin.mapper.ConsumerMapper;
+import com.example.yin.mapper.RoleMapper;
+import com.example.yin.mapper.UserRoleMapper;
 import com.example.yin.model.domain.Consumer;
+import com.example.yin.model.domain.Role;
+import com.example.yin.model.domain.UserRole;
 import com.example.yin.model.request.ConsumerRequest;
 import com.example.yin.service.ConsumerService;
 import org.apache.commons.lang3.StringUtils;
@@ -13,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpSession;
@@ -27,9 +32,16 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
     private ConsumerMapper consumerMapper;
 
     @Autowired
+    private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private RoleMapper roleMapper;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public R addUser(ConsumerRequest registryRequest) {
         if (this.existUser(registryRequest.getUsername())) {
             return R.warning("用户名已注册");
@@ -56,6 +68,18 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
                 return R.fatal("邮箱不允许重复");
             }
             if (consumerMapper.insert(consumer) > 0) {
+                QueryWrapper<Role> roleQueryWrapper = new QueryWrapper<>();
+                roleQueryWrapper.eq("code", "USER");
+                Role defaultRole = roleMapper.selectOne(roleQueryWrapper);
+                if (defaultRole == null) {
+                    throw new RuntimeException("Default role 'USER' not found in database.");
+                }
+
+                UserRole userRole = new UserRole();
+                userRole.setUserId(consumer.getId());
+                userRole.setUserType("consumer");
+                userRole.setRoleId(defaultRole.getId());
+                userRoleMapper.insert(userRole);
                 return R.success("注册成功");
             } else {
                 return R.error("注册失败");
@@ -170,8 +194,13 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
     }
 
     @Override
+    @Transactional
     public R deleteUser(Integer id) {
         if (consumerMapper.deleteById(id) > 0) {
+            QueryWrapper<UserRole> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("user_id", id);
+            queryWrapper.eq("user_type", "consumer");
+            userRoleMapper.delete(queryWrapper);
             return R.success("删除成功");
         }
         return R.error("删除失败");
@@ -179,12 +208,12 @@ public class ConsumerServiceImpl extends ServiceImpl<ConsumerMapper, Consumer>
 
     @Override
     public R allUser() {
-        return R.success(null, consumerMapper.selectList(null));
+        return R.success(null, consumerMapper.selectListWithRoles());
     }
 
     @Override
     public R userOfId(Integer id) {
-        Consumer consumer = consumerMapper.selectById(id);
+        Consumer consumer = consumerMapper.selectByIdWithRoles(id);
         if (consumer == null) {
             return R.error("用户不存在");
         }

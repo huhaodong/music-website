@@ -3,10 +3,12 @@ package com.example.yin.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.example.yin.mapper.ConsumerMapper;
 import com.example.yin.mapper.PermissionMapper;
+import com.example.yin.mapper.RoleMapper;
 import com.example.yin.mapper.RolePermissionMapper;
 import com.example.yin.mapper.UserRoleMapper;
 import com.example.yin.model.domain.Consumer;
 import com.example.yin.model.domain.Permission;
+import com.example.yin.model.domain.Role;
 import com.example.yin.model.domain.RolePermission;
 import com.example.yin.model.domain.UserRole;
 import com.example.yin.model.request.AuthRequest;
@@ -44,6 +46,9 @@ public class AuthService {
     @Autowired
     private PermissionMapper permissionMapper;
 
+    @Autowired
+    private RoleMapper roleMapper;
+
     public AuthResponse login(AuthRequest request) {
         String username = request.getUsername();
         String password = request.getPassword();
@@ -56,13 +61,20 @@ public class AuthService {
         }
     }
 
+    private boolean verifyPassword(String rawPassword, String encodedPassword) {
+        if (encodedPassword != null && encodedPassword.startsWith("$2a$")) {
+            return passwordEncoder.matches(rawPassword, encodedPassword);
+        }
+        return rawPassword.equals(encodedPassword);
+    }
+
     private AuthResponse loginAsAdmin(String username, String password) {
         Consumer consumer = findConsumerByUsername(username);
         if (consumer == null) {
             throw new RuntimeException("用户不存在");
         }
 
-        if (!passwordEncoder.matches(password, consumer.getPassword())) {
+        if (!verifyPassword(password, consumer.getPassword())) {
             throw new RuntimeException("密码错误");
         }
 
@@ -89,7 +101,7 @@ public class AuthService {
             throw new RuntimeException("用户不存在");
         }
 
-        if (!passwordEncoder.matches(password, consumer.getPassword())) {
+        if (!verifyPassword(password, consumer.getPassword())) {
             throw new RuntimeException("密码错误");
         }
 
@@ -141,7 +153,10 @@ public class AuthService {
 
         List<String> roles = new ArrayList<>();
         for (UserRole ur : userRoles) {
-            roles.add("ROLE_" + ur.getRoleId());
+            Role role = roleMapper.selectById(ur.getRoleId());
+            if (role != null && role.getCode() != null) {
+                roles.add("ROLE_" + role.getCode().toUpperCase());
+            }
         }
         return roles;
     }

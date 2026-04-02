@@ -18,6 +18,18 @@ module.exports = defineConfig({
       }
     }
   },
+  devServer: {
+    port: 8081,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        pathRewrite: {
+          '^/api': ''
+        }
+      }
+    }
+  },
   css: {
     extract: process.env.NODE_ENV === 'production' ? {
       ignoreOrder: true

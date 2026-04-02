@@ -15,41 +15,43 @@ public class OrganizationController {
     private OrganizationService organizationService;
 
     @PostMapping("/add")
-    @RequirePermission("org:add")
+    @RequirePermission(codes = {"org:add", "system:org:add"})
     public R addOrganization(@RequestBody OrganizationRequest organizationRequest) {
         return organizationService.addOrganization(organizationRequest);
     }
 
     @PutMapping("/update")
-    @RequirePermission("org:edit")
+    @RequirePermission(codes = {"org:edit", "system:org:update"})
     public R updateOrganization(@RequestBody OrganizationRequest organizationRequest) {
         return organizationService.updateOrganization(organizationRequest);
     }
 
     @DeleteMapping("/delete")
-    @RequirePermission("org:delete")
+    @RequirePermission(codes = {"org:delete", "system:org:delete"})
     public R deleteOrganization(@RequestParam Integer id) {
         return organizationService.deleteOrganization(id);
     }
 
     @GetMapping("/detail")
-    @RequirePermission("org:detail")
+    @RequirePermission(codes = {"org:detail", "system:org:query"})
     public R getOrganizationById(@RequestParam Integer id) {
         return organizationService.getOrganizationById(id);
     }
 
     @GetMapping("/list")
-    @RequirePermission("org:list")
+    @RequirePermission(codes = {"org:list", "system:org:query"})
     public R getAllOrganizations() {
         return organizationService.getAllOrganizations();
     }
 
     @GetMapping("/tree")
+    @RequirePermission(codes = {"org:list", "system:org:query"})
     public R getOrganizationTree() {
         return organizationService.getOrganizationTree();
     }
 
     @GetMapping("/children")
+    @RequirePermission(codes = {"org:list", "system:org:query"})
     public R getChildrenOrganizations(@RequestParam(required = false) Integer parentId) {
         return organizationService.getChildrenOrganizations(parentId);
     }

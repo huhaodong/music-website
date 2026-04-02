@@ -11,7 +11,10 @@ spring:
       enabled: true
   sql:
     init:
-      mode: never
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+      data-locations: classpath:data-h2.sql
+      continue-on-error: false
 
 mybatis-plus:
   configuration:

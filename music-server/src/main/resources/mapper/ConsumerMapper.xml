@@ -19,8 +19,33 @@
     <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
     <result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
   </resultMap>
-  <sql id="Base_Column_List">
-    id, username, password, sex, phone_num, email, birth, introduction, location, avator, nickname, status, org_id, last_login_time, create_time, update_time
+  <resultMap id="UserWithRolesResultMap" type="com.example.yin.model.domain.Consumer" extends="BaseResultMap">
+    <collection property="roles" ofType="com.example.yin.model.domain.Role">
+      <id column="role_id" property="id" />
+      <result column="role_name" property="name" />
+      <result column="role_code" property="code" />
+    </collection>
+  </resultMap>
+
+  <sql id="User_Role_Column_List">
+    c.id, c.username, c.password, c.sex, c.phone_num, c.email, c.birth, c.introduction, c.location, c.avator, c.nickname, c.status, c.org_id, c.last_login_time, c.create_time, c.update_time,
+    r.id as role_id, r.name as role_name, r.code as role_code
   </sql>
 
+  <select id="selectListWithRoles" resultMap="UserWithRolesResultMap">
+    select
+    <include refid="User_Role_Column_List" />
+    from consumer c
+    left join user_role ur on c.id = ur.user_id and ur.user_type = 'consumer'
+    left join role r on ur.role_id = r.id
+  </select>
+
+  <select id="selectByIdWithRoles" resultMap="UserWithRolesResultMap">
+    select
+    <include refid="User_Role_Column_List" />
+    from consumer c
+    left join user_role ur on c.id = ur.user_id and ur.user_type = 'consumer'
+    left join role r on ur.role_id = r.id
+    where c.id = #{id}
+  </select>
 </mapper>

@@ -174,50 +174,61 @@ function setSex(sex, arr) {
 }
 HttpManager.getAllUser().then((res) => {
   const result = res as ResponseBody;
-  userCount.value = result.data.length;
-  userSex.series[0].data.push(setSex(0, result.data));
-  userSex.series[0].data.push(setSex(1, result.data));
+  const users = result.data || [];
+  userCount.value = users.length;
+  userSex.series[0].data.push(setSex(0, users));
+  userSex.series[0].data.push(setSex(1, users));
 
-  // const userSexChart = echarts.init(proxy.$refs.userSex);
   const userSexChart = echarts.init(document.getElementById("userSex"));
   userSexChart.setOption(userSex);
+}).catch((err) => {
+  console.error("获取用户列表失败:", err);
 });
 
 HttpManager.getAllSong().then((res) => {
-  songCount.value = (res as ResponseBody).data.length;
+  const result = res as ResponseBody;
+  songCount.value = (result.data || []).length;
+}).catch((err) => {
+  console.error("获取歌曲列表失败:", err);
 });
+
 HttpManager.getSongList().then((res) => {
   const result = res as ResponseBody;
-  songListCount.value = result.data.length;
-  for (let item of result.data) {
+  const songLists = result.data || [];
+  songListCount.value = songLists.length;
+  for (let item of songLists) {
     for (let i = 0; i < songStyle.xAxis.data.length; i++) {
-      if (item.style.includes(songStyle.xAxis.data[i])) {
+      if (item.style && item.style.includes(songStyle.xAxis.data[i])) {
         songStyle.series[0].data[i]++;
       }
     }
   }
-  // const songStyleChart = echarts.init(proxy.$refs.songStyle);
   const songStyleChart = echarts.init(document.getElementById("songStyle"));
   songStyleChart.setOption(songStyle);
+}).catch((err) => {
+  console.error("获取歌单列表失败:", err);
 });
 
 HttpManager.getAllSinger().then((res) => {
   const result = res as ResponseBody;
-  singerCount.value = result.data.length;
-  singerSex.series[0].data.push(setSex(0, result.data));
-  singerSex.series[0].data.push(setSex(1, result.data));
+  const singers = result.data || [];
+  singerCount.value = singers.length;
+  singerSex.series[0].data.push(setSex(0, singers));
+  singerSex.series[0].data.push(setSex(1, singers));
   const singerSexChart = echarts.init(document.getElementById("singerSex"));
   singerSexChart.setOption(singerSex);
 
-  for (let item of result.data) {
+  for (let item of singers) {
     for (let i = 0; i < country.xAxis.data.length; i++) {
-      if (item.location.includes(country.xAxis.data[i])) {
+      if (item.location && item.location.includes(country.xAxis.data[i])) {
         country.series[0].data[i]++;
       }
     }
   }
   const countryChart = echarts.init(document.getElementById("country"));
   countryChart.setOption(country);
+}).catch((err) => {
+  console.error("获取歌手列表失败:", err);
 });
 </script>
 

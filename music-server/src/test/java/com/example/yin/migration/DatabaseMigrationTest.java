@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,7 +24,7 @@ class DatabaseMigrationTest {
         List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
         List<String> columnNames = columns.stream()
                 .map(col -> (String) col.get("COLUMN_NAME"))
-                .toList();
+                .collect(Collectors.toList());
 
         assertTrue(columnNames.contains("org_id"), "consumer表应包含org_id字段");
         assertTrue(columnNames.contains("status"), "consumer表应包含status字段");
@@ -36,6 +37,18 @@ class DatabaseMigrationTest {
                      "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'organization'";
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql);
         assertFalse(result.isEmpty(), "organization表应该存在");
+    }
+
+    @Test
+    void organization表应包含code字段() {
+        String sql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS " +
+                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'organization'";
+        List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
+        List<String> columnNames = columns.stream()
+                .map(col -> (String) col.get("COLUMN_NAME"))
+                .collect(Collectors.toList());
+
+        assertTrue(columnNames.contains("code"), "organization表应包含code字段");
     }
 
     @Test

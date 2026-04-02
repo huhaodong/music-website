@@ -44,5 +44,7 @@ public class ConsumerRequest {
 
     private Integer roleId;
 
+    private Integer orgId;
+
     private Integer status;
 }

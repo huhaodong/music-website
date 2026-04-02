@@ -9,9 +9,7 @@ import com.example.yin.model.domain.Permission;
 import com.example.yin.model.domain.RolePermission;
 import com.example.yin.model.domain.UserRole;
 import com.example.yin.model.domain.Consumer;
-import com.example.yin.model.domain.Admin;
 import com.example.yin.mapper.ConsumerMapper;
-import com.example.yin.mapper.AdminMapper;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
@@ -46,9 +44,6 @@ public class PermissionAspect {
     @Autowired
     private ConsumerMapper consumerMapper;
 
-    @Autowired
-    private AdminMapper adminMapper;
-
     @Before("@annotation(com.example.yin.annotation.RequirePermission)")
     public void checkPermission(JoinPoint joinPoint) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
@@ -73,13 +68,18 @@ public class PermissionAspect {
             throw new RuntimeException("用户未登录");
         }
 
+        if (authentication.getAuthorities() != null) {
+            for (GrantedAuthority authority : authentication.getAuthorities()) {
+                if (authority != null && "ROLE_ADMIN".equals(authority.getAuthority())) {
+                    return;
+                }
+            }
+        }
+
         String username = authentication.getName();
         String userType = getUserTypeFromAuthorities(authentication.getAuthorities());
 
         Integer userId = findUserIdByUsername(username);
-        if (userId == null) {
-            userId = findAdminIdByName(username);
-        }
 
         if (userId == null) {
             throw new RuntimeException("用户未找到");
@@ -129,15 +129,8 @@ public class PermissionAspect {
         return consumer != null ? consumer.getId() : null;
     }
 
-    private Integer findAdminIdByName(String name) {
-        QueryWrapper<Admin> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("name", name);
-        Admin admin = adminMapper.selectOne(queryWrapper);
-        return admin != null ? admin.getId() : null;
-    }
-
     private List<String> getUserPermissions(Integer userId, String userType) {
-        if (userId == null || userType == null) {
+        if (userId == null) {
             return new ArrayList<>();
         }
 

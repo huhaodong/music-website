@@ -15,31 +15,31 @@ public class RoleController {
     private RoleService roleService;
 
     @PostMapping("/add")
-    @RequirePermission("role:add")
+    @RequirePermission({"system:role:add", "role:add"})
     public R addRole(@RequestBody RoleRequest roleRequest) {
         return roleService.addRole(roleRequest);
     }
 
     @PutMapping("/update")
-    @RequirePermission("role:edit")
+    @RequirePermission({"system:role:update", "role:edit"})
     public R updateRole(@RequestBody RoleRequest roleRequest) {
         return roleService.updateRole(roleRequest);
     }
 
     @DeleteMapping("/delete")
-    @RequirePermission("role:delete")
+    @RequirePermission({"system:role:delete", "role:delete"})
     public R deleteRole(@RequestParam Integer id) {
         return roleService.deleteRole(id);
     }
 
     @GetMapping("/detail")
-    @RequirePermission("role:detail")
+    @RequirePermission({"system:role:query", "role:detail"})
     public R getRoleById(@RequestParam Integer id) {
         return roleService.getRoleById(id);
     }
 
     @GetMapping("/list")
-    @RequirePermission("role:list")
+    @RequirePermission({"system:role:query", "role:list"})
     public R getAllRoles() {
         return roleService.getAllRoles();
     }

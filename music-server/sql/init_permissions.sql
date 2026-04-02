@@ -46,7 +46,8 @@ INSERT INTO permission (name, code, type, sort, status) VALUES
 ('创建角色', 'role:add', 2, 43, 1),
 ('编辑角色', 'role:edit', 2, 44, 1),
 ('删除角色', 'role:delete', 2, 45, 1),
-('分配权限', 'role:assign', 2, 46, 1);
+('分配权限', 'role:assign', 2, 46, 1),
+('分配权限(系统码)', 'system:role:assign-permission', 2, 47, 1);
 
 -- 插入组织相关权限
 INSERT INTO permission (name, code, type, sort, status) VALUES

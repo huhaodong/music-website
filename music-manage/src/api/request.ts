@@ -26,48 +26,46 @@ axios.interceptors.request.use(
 );
 
 // 响应拦截器
+// 【注意】此拦截器已将 axios 原始 response 中的 .data 取出，返回的是后端 R 对象
+// 即：{ code, success, message, type, data }
+// 因此下方的封装函数中直接 resolve(response)，不再做二次 .data 提取
 axios.interceptors.response.use(
   response => {
-    // 如果返回的状态码为200，说明接口请求成功，可以正常拿到数据
-    // 否则的话抛出错误
     if (response.status === 200) {
-      return Promise.resolve(response)
+      return Promise.resolve(response.data)  // → 返回后端 R 对象
     } else {
-      return Promise.reject(response)
+      return Promise.reject(response.data)
     }
   },
   // 服务器状态码不是2开头的的情况
   error => {
-    if (error.response.status) {
+    if (error.response && error.response.status) {
       switch (error.response.status) {
         // 401: 未登录
         case 401:
           router.replace({
             path: "/",
-            query: {
-              // redirect: router.currentRoute.fullPath
-            },
+            query: {},
           });
           break;
         case 403:
-          // console.log('管理员权限已修改请重新登录')
-          // 跳转登录页面，并将要浏览的页面fullPath传过去，登录成功后跳转需要访问的页面
           setTimeout(() => {
             router.replace({
               path: "/",
-              query: {
-                // redirect: router.currentRoute.fullPath
-              },
+              query: {},
             });
           }, 1000);
           break;
 
         // 404请求不存在
         case 404:
-          // console.log('请求页面飞到火星去了')
           break;
       }
-      return Promise.reject(error.response);
+      return Promise.reject(error.response.data);
+    } else if (error.request) {
+      return Promise.reject(error.message || '网络错误');
+    } else {
+      return Promise.reject(error);
     }
   }
 )
@@ -78,14 +76,12 @@ export function getBaseURL() {
 
 /**
  * 封装get方法
- * @param url
- * @param data
- * @returns {Promise}
+ * 返回完整 R 对象：{ code, success, message, type, data }
  */
 export function get(url, params?: object) {
   return new Promise((resolve, reject) => {
     axios.get(url, params).then(
-      response => resolve(response.data),
+      response => resolve(response),  // response 已是 R 对象（由拦截器解包）
       error => reject(error)
     )
   });
@@ -93,15 +89,12 @@ export function get(url, params?: object) {
 
 /**
  * 封装post请求
- * @param url
- * @param data
- * @param config 可选的配置对象（如 headers）
- * @returns {Promise}
+ * 返回完整 R 对象：{ code, success, message, type, data }
  */
 export function post(url, data = {}, config = {}) {
   return new Promise((resolve, reject) => {
     axios.post(url, data, config).then(
-      response => resolve(response.data),
+      response => resolve(response),  // response 已是 R 对象（由拦截器解包）
       error => reject(error)
     );
   });
@@ -109,14 +102,12 @@ export function post(url, data = {}, config = {}) {
 
 /**
  * 封装delete请求
- * @param url
- * @param data
- * @returns {Promise}
+ * 返回完整 R 对象：{ code, success, message, type, data }
  */
 export function deletes(url, data = {}) {
   return new Promise((resolve, reject) => {
     axios.delete(url, data).then(
-      response => resolve(response.data),
+      response => resolve(response),
       error => reject(error)
     );
   });
@@ -124,14 +115,12 @@ export function deletes(url, data = {}) {
 
 /**
  * 封装put请求
- * @param url
- * @param data
- * @returns {Promise}
+ * 返回完整 R 对象：{ code, success, message, type, data }
  */
 export function put(url, data = {}) {
   return new Promise((resolve, reject) => {
     axios.put(url, data).then(
-      response => resolve(response.data),
+      response => resolve(response),
       error => reject(error)
     );
   });

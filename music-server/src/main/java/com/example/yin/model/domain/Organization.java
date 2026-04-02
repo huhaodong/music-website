@@ -3,6 +3,7 @@ package com.example.yin.model.domain;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -32,5 +33,6 @@ public class Organization {
 
     private LocalDateTime updateTime;
 
-    private transient List<Organization> children;
+    @TableField(exist = false)
+    private List<Organization> children;
 }

@@ -38,9 +38,9 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: 'Comment' }
       },
       {
-        path: '/Consumer',
-        component: () => import('@/views/ConsumerPage.vue'),
-        meta: { title: 'Consumer' }
+        path: '/Home/user',
+        component: () => import('@/views/UnifiedUserPage.vue'),
+        meta: { title: '用户管理' }
       },
       {
         path: '/Collect',
@@ -48,11 +48,6 @@ const routes: Array<RouteRecordRaw> = [
         meta: { title: 'Collect' }
       },
       // RBAC权限系统路由 - Home子路由
-      {
-        path: '/Home/user',
-        component: () => import('@/views/UserManage.vue'),
-        meta: { title: '用户管理' }
-      },
       {
         path: '/Home/org',
         component: () => import('@/views/OrgManage.vue'),

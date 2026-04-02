@@ -79,13 +79,22 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
                 return R.fatal("邮箱不允许重复");
             }
             if (consumerMapper.insert(consumer) > 0) {
-                if (registryRequest.getRoleId() != null) {
-                    UserRole userRole = new UserRole();
-                    userRole.setUserId(consumer.getId());
-                    userRole.setUserType("consumer");
-                    userRole.setRoleId(registryRequest.getRoleId());
-                    userRoleMapper.insert(userRole);
+                Integer roleId = registryRequest.getRoleId();
+                if (roleId == null) {
+                    QueryWrapper<Role> roleQueryWrapper = new QueryWrapper<>();
+                    roleQueryWrapper.eq("code", "USER");
+                    Role defaultRole = roleMapper.selectOne(roleQueryWrapper);
+                    if (defaultRole == null) {
+                        throw new RuntimeException("Default role 'USER' not found in database.");
+                    }
+                    roleId = defaultRole.getId();
                 }
+
+                UserRole userRole = new UserRole();
+                userRole.setUserId(consumer.getId());
+                userRole.setUserType("consumer");
+                userRole.setRoleId(roleId);
+                userRoleMapper.insert(userRole);
                 return R.success("注册成功");
             } else {
                 return R.error("注册失败");

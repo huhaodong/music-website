@@ -132,6 +132,7 @@ INSERT INTO `permission` (`name`, `code`, `type`, `parent_id`, `sort`, `status`)
 ('角色修改', 'system:role:update', 'api', 13, 3, 1),
 ('角色删除', 'system:role:delete', 'api', 13, 4, 1),
 ('权限分配', 'system:role:assign-permission', 'api', 13, 5, 1),
+('权限分配(兼容旧权限码)', 'role:assign', 'api', 13, 6, 1),
 ('权限管理', 'system:permission', 'menu', 1, 4, 1),
 ('权限查询', 'system:permission:query', 'api', 19, 1, 1),
 ('模板管理', 'system:permission:template', 'api', 19, 2, 1),

@@ -12,10 +12,6 @@
         <el-icon><pie-chart /></el-icon>
         <span>系统首页</span>
       </el-menu-item>
-      <el-menu-item index="/Consumer">
-        <el-icon><User /></el-icon>
-        <span>用户管理</span>
-      </el-menu-item>
       <el-menu-item index="/singer">
         <el-icon><mic /></el-icon>
         <span>歌手管理</span>
@@ -41,7 +37,7 @@
 
 <script lang="ts" setup>
 import { ref } from "vue";
-import { PieChart, Mic, Document, User, Setting } from "@element-plus/icons-vue";
+import { PieChart, Mic, Document, Setting } from "@element-plus/icons-vue";
 import emitter from "@/utils/emitter";
 
 const collapse = ref(false);

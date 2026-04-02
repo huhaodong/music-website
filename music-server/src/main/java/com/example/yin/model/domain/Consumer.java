@@ -1,6 +1,7 @@
 package com.example.yin.model.domain;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -46,6 +47,7 @@ public class Consumer {
     private Date updateTime;
 
     @TableField(exist = false)
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     private List<Role> roles;
 
     @Override

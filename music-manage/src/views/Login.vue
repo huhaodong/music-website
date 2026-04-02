@@ -62,9 +62,10 @@ export default defineComponent({
           setRefreshToken(data.refreshToken);
           routerManager(RouterName.Info, { path: RouterName.Info });
         }
-      } catch (error) {
+      } catch (error: any) {
+        const msg = error?.message || (typeof error === 'string' ? error : "登录失败，请检查用户名和密码");
         ElMessage({
-          message: "登录失败，请检查用户名和密码",
+          message: msg,
           type: "error",
         });
       }

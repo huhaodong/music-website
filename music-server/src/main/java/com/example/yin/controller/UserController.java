@@ -20,43 +20,43 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/add")
-    @RequirePermission(codes = {"system:user", "user:add"})
+    @RequirePermission(codes = {"system:user:add", "user:add", "user:create"})
     public R addUser(@RequestBody ConsumerRequest registryRequest) {
         return userService.addUser(registryRequest);
     }
 
     @GetMapping("/list")
-    @RequirePermission(codes = {"system:user", "user:list"})
+    @RequirePermission(codes = {"system:user:query", "user:list"})
     public R allUser() {
         return userService.getAllUsers();
     }
 
     @GetMapping("/detail")
-    @RequirePermission(codes = {"system:user", "user:detail"})
+    @RequirePermission(codes = {"system:user:query", "user:detail"})
     public R userOfId(@RequestParam int id) {
         return userService.getUserById(id);
     }
 
     @GetMapping("/delete")
-    @RequirePermission(codes = {"system:user", "user:delete"})
+    @RequirePermission(codes = {"system:user:delete", "user:delete"})
     public R deleteUser(@RequestParam int id) {
         return userService.deleteUser(id);
     }
 
     @PostMapping("/update")
-    @RequirePermission(codes = {"system:user", "user:update"})
+    @RequirePermission(codes = {"system:user:update", "user:update", "user:edit"})
     public R updateUserMsg(@RequestBody ConsumerRequest updateRequest) {
         return userService.updateUserMsg(updateRequest);
     }
 
     @PostMapping("/updatePassword")
-    @RequirePermission(codes = {"system:user", "user:updatePassword"})
+    @RequirePermission(codes = {"system:user:update", "user:updatePassword"})
     public R updatePassword(@RequestBody ConsumerRequest updatePasswordRequest) {
         return userService.updatePassword(updatePasswordRequest);
     }
 
     @PostMapping("/avatar/update")
-    @RequirePermission(codes = {"system:user", "user:updateAvatar"})
+    @RequirePermission(codes = {"system:user:update", "user:updateAvatar"})
     public R updateUserPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id") int id) {
         ConsumerRequest request = new ConsumerRequest();
         request.setId(id);
@@ -65,13 +65,13 @@ public class UserController {
     }
 
     @PostMapping("/batchDelete")
-    @RequirePermission(codes = {"system:user", "user:batchDelete"})
+    @RequirePermission(codes = {"system:user:delete", "user:batchDelete"})
     public R batchDeleteUsers(@RequestBody List<Integer> ids) {
         return userService.batchDeleteUsers(ids);
     }
 
     @PostMapping("/batchAssignRoles")
-    @RequirePermission(codes = {"system:user", "user:assignRoles"})
+    @RequirePermission(codes = {"system:user:assign-role", "user:assignRoles"})
     public R batchAssignRoles(@RequestParam Integer[] userIds,
                                @RequestParam String userType,
                                @RequestBody List<Integer> roleIds) {

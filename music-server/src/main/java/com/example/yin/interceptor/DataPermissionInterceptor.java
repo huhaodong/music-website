@@ -85,7 +85,7 @@ public class DataPermissionInterceptor implements Interceptor {
     }
 
     private boolean requiresDataPermission(String methodId) {
-        return methodId.contains("Mapper.") && !methodId.contains("AdminMapper") && !methodId.contains("ConsumerMapper");
+        return methodId.contains("Mapper.") && !methodId.contains("ConsumerMapper");
     }
 
     private String getUserTypeFromParameter(Object parameter) {
