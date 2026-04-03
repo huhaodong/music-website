@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.yin.mapper.ProjectMapper">
+
+  <select id="selectAssociatedArtists" resultType="com.example.yin.model.response.ProjectAssociatedArtistRow">
+    SELECT
+      a.id            AS id,
+      a.name          AS name,
+      a.types_json    AS typesJson,
+      a.pic           AS pic,
+      pa.role         AS role
+    FROM project_artist pa
+    INNER JOIN artist a ON a.id = pa.artist_id
+    WHERE pa.project_id = #{projectId}
+    ORDER BY pa.id ASC
+  </select>
+
+</mapper>

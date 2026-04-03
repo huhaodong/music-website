@@ -55,4 +55,10 @@ public class OrganizationController {
     public R getChildrenOrganizations(@RequestParam(required = false) Integer parentId) {
         return organizationService.getChildrenOrganizations(parentId);
     }
+
+    @GetMapping("/{id}/users")
+    @RequirePermission(codes = {"org:user:list", "system:org:user:list", "system:org:query"})
+    public R getOrganizationUsers(@PathVariable("id") Integer id) {
+        return organizationService.getOrganizationUsers(id);
+    }
 }

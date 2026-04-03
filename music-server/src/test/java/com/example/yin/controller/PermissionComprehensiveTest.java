@@ -33,7 +33,7 @@ import java.util.*;
  * 7. 后台访问权限 (1个): system:admin:login
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Import(TestMinioConfig.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("权限系统全面测试 - 41个原子权限")

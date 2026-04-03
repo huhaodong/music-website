@@ -19,22 +19,25 @@ class DatabaseMigrationTest {
 
     @Test
     void consumer表应包含新字段() {
+        // H2 下没有 DATABASE()，且 INFORMATION_SCHEMA 中表/列名通常为大写
+        // 这里不限定 schema，统一用 UPPER 兼容 MySQL/H2
         String sql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS " +
-                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'consumer'";
+                     "WHERE UPPER(TABLE_NAME) = 'CONSUMER'";
         List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
         List<String> columnNames = columns.stream()
                 .map(col -> (String) col.get("COLUMN_NAME"))
                 .collect(Collectors.toList());
 
-        assertTrue(columnNames.contains("org_id"), "consumer表应包含org_id字段");
-        assertTrue(columnNames.contains("status"), "consumer表应包含status字段");
-        assertTrue(columnNames.contains("last_login_time"), "consumer表应包含last_login_time字段");
+        List<String> upperNames = columnNames.stream().map(String::toUpperCase).collect(Collectors.toList());
+        assertTrue(upperNames.contains("ORG_ID"), "consumer表应包含org_id字段");
+        assertTrue(upperNames.contains("STATUS"), "consumer表应包含status字段");
+        assertTrue(upperNames.contains("LAST_LOGIN_TIME"), "consumer表应包含last_login_time字段");
     }
 
     @Test
     void organization表应存在() {
         String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES " +
-                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'organization'";
+                     "WHERE UPPER(TABLE_NAME) = 'ORGANIZATION'";
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql);
         assertFalse(result.isEmpty(), "organization表应该存在");
     }
@@ -42,19 +45,20 @@ class DatabaseMigrationTest {
     @Test
     void organization表应包含code字段() {
         String sql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS " +
-                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'organization'";
+                     "WHERE UPPER(TABLE_NAME) = 'ORGANIZATION'";
         List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
         List<String> columnNames = columns.stream()
                 .map(col -> (String) col.get("COLUMN_NAME"))
                 .collect(Collectors.toList());
 
-        assertTrue(columnNames.contains("code"), "organization表应包含code字段");
+        List<String> upperNames = columnNames.stream().map(String::toUpperCase).collect(Collectors.toList());
+        assertTrue(upperNames.contains("CODE"), "organization表应包含code字段");
     }
 
     @Test
     void role表应存在() {
         String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES " +
-                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'role'";
+                     "WHERE UPPER(TABLE_NAME) = 'ROLE'";
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql);
         assertFalse(result.isEmpty(), "role表应该存在");
     }
@@ -62,7 +66,7 @@ class DatabaseMigrationTest {
     @Test
     void permission表应存在() {
         String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES " +
-                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'permission'";
+                     "WHERE UPPER(TABLE_NAME) = 'PERMISSION'";
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql);
         assertFalse(result.isEmpty(), "permission表应该存在");
     }

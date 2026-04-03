@@ -16,6 +16,14 @@
         <el-icon><mic /></el-icon>
         <span>歌手管理</span>
       </el-menu-item>
+      <el-menu-item index="/Home/artist">
+        <el-icon><user-filled /></el-icon>
+        <span>艺术家管理</span>
+      </el-menu-item>
+      <el-menu-item index="/Home/project">
+        <el-icon><folder-opened /></el-icon>
+        <span>项目管理</span>
+      </el-menu-item>
       <el-menu-item index="/SongList">
         <el-icon><Document /></el-icon>
         <span>歌单管理</span>
@@ -37,7 +45,7 @@
 
 <script lang="ts" setup>
 import { ref } from "vue";
-import { PieChart, Mic, Document, Setting } from "@element-plus/icons-vue";
+import { PieChart, Mic, Document, Setting, UserFilled, FolderOpened } from "@element-plus/icons-vue";
 import emitter from "@/utils/emitter";
 
 const collapse = ref(false);

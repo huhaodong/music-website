@@ -62,6 +62,21 @@ const routes: Array<RouteRecordRaw> = [
         path: '/Home/permission',
         component: () => import('@/views/PermissionManage.vue'),
         meta: { title: '权限管理' }
+      },
+      {
+        path: '/Home/artist',
+        component: () => import('@/views/ArtistManage.vue'),
+        meta: { title: '艺术家管理' }
+      },
+      {
+        path: '/Home/project',
+        component: () => import('@/views/ProjectManage.vue'),
+        meta: { title: '项目管理' }
+      },
+      {
+        path: '/Home/project/:id',
+        component: () => import('@/views/ProjectDetail.vue'),
+        meta: { title: '项目详情' }
       }
     ]
   },

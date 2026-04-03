@@ -59,8 +59,12 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
         song.setUpdateTime(new Date());
         song.setPic(pic);
         song.setUrl(storeUrlPath);
+        // 默认歌词，避免 NPE（测试与生产均可能出现 lrc 未上传的情况）
+        if (song.getLyric() == null) {
+            song.setLyric("[00:00:00]暂无歌词");
+        }
 
-        if (lrcfile!=null&&(song.getLyric().equals("[00:00:00]暂无歌词"))){
+        if (lrcfile != null && "[00:00:00]暂无歌词".equals(song.getLyric())) {
             byte[] fileContent = new byte[0];
             try {
                 fileContent = lrcfile.getBytes();
@@ -91,7 +95,13 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
     @Override
     public R updateSongUrl(MultipartFile urlFile, int id) {
         Song song = songMapper.selectById(id);
+        if (song == null) {
+            return R.error("更新失败");
+        }
         String path = song.getUrl();
+        if (path == null || path.trim().isEmpty()) {
+            return R.error("更新失败");
+        }
         String[] parts = path.split("/");
         String fileName = parts[parts.length - 1];
 
@@ -219,7 +229,10 @@ public class SongServiceImpl extends ServiceImpl<SongMapper, Song> implements So
     @Override
     public R updateSongLrc(MultipartFile lrcFile, int id) {
         Song song = songMapper.selectById(id);
-        if (lrcFile!=null&&!(song.getLyric().equals("[00:00:00]暂无歌词"))){
+        if (song == null) {
+            return R.error("更新失败");
+        }
+        if (lrcFile != null && !"[00:00:00]暂无歌词".equals(song.getLyric())) {
             byte[] fileContent = new byte[0];
             try {
                 fileContent = lrcFile.getBytes();

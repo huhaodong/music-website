@@ -76,11 +76,17 @@ public class DataInitRunner implements CommandLineRunner {
 
     private Role getDefaultUserRole() {
         QueryWrapper<Role> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("code", "USER");
+        queryWrapper.eq("code", "user");
         Role role = roleMapper.selectOne(queryWrapper);
 
         if (role == null) {
-            log.warn("No role found with code='USER', checking all roles...");
+            queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("code", "USER");
+            role = roleMapper.selectOne(queryWrapper);
+        }
+
+        if (role == null) {
+            log.warn("No role found with code='user' or 'USER', checking all roles...");
             List<Role> allRoles = roleMapper.selectList(null);
             for (Role r : allRoles) {
                 log.warn("Available role: id={}, name={}, code={}", r.getId(), r.getName(), r.getCode());

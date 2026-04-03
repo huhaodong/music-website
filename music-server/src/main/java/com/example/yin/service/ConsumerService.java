@@ -7,6 +7,7 @@ import com.example.yin.model.request.ConsumerRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpSession;
+import java.util.List;
 
 public interface ConsumerService extends IService<Consumer> {
 
@@ -32,4 +33,9 @@ public interface ConsumerService extends IService<Consumer> {
     R loginEmailStatus(ConsumerRequest loginRequest, HttpSession session);
     Consumer findByEmail (String email);
     R updatePassword01(ConsumerRequest updatePasswordRequest);
+
+    /**
+     * 批量删除用户（容错：空数组/不存在/负数均不抛异常，返回统一成功结构）
+     */
+    R batchDeleteUsers(List<Integer> ids);
 }

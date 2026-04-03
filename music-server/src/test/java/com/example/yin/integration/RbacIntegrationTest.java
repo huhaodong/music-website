@@ -210,14 +210,12 @@ class RbacIntegrationTest {
         @Test
         @DisplayName("测试 1.3：无 Token 访问受控资源应被拒绝")
         void testAccessControlledResource_WithoutToken_ShouldBeDenied() {
-            // 尝试无 Token 访问受控资源
-            assertThatThrownBy(() -> {
-                restTemplate.getForEntity(
-                    baseUrl + "/system/user/list",
-                    Map.class
-                );
-            }).isInstanceOf(HttpClientErrorException.class)
-              .hasMessageContaining("401");
+            // TestRestTemplate 默认不会抛出 4xx/5xx 异常（会返回 ResponseEntity）
+            ResponseEntity<Map> resp = restTemplate.getForEntity(
+                baseUrl + "/system/user/list",
+                Map.class
+            );
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }
 
         @Test
@@ -229,15 +227,14 @@ class RbacIntegrationTest {
             headers.set("Content-Type", "application/json");
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
-            // 应返回 401 或 403
-            assertThatThrownBy(() -> {
-                restTemplate.exchange(
-                    baseUrl + "/system/user/list",
-                    HttpMethod.GET,
-                    entity,
-                    Map.class
-                );
-            }).isInstanceOf(HttpClientErrorException.class);
+            // 应返回 401 或 403（同上：不依赖异常）
+            ResponseEntity<Map> resp = restTemplate.exchange(
+                baseUrl + "/system/user/list",
+                HttpMethod.GET,
+                entity,
+                Map.class
+            );
+            assertThat(resp.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
         }
     }
 
@@ -319,14 +316,12 @@ class RbacIntegrationTest {
             
             // 移除用户角色
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
-            UserRoleRequest removeRequest = new UserRoleRequest();
-            removeRequest.setUserId(1);
-            removeRequest.setUserType("system");
-            HttpEntity<String> removeEntity = new HttpEntity<>(objectMapper.writeValueAsString(removeRequest), headers);
-            
-            ResponseEntity<Map> removeResponse = restTemplate.postForEntity(
-                baseUrl + "/system/userRole/remove",
+            headers.set("Authorization", "Bearer " + accessToken);
+            HttpEntity<Void> removeEntity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> removeResponse = restTemplate.exchange(
+                baseUrl + "/system/userRole/remove?userId=1&userType=system",
+                HttpMethod.DELETE,
                 removeEntity,
                 Map.class
             );
@@ -373,11 +368,10 @@ class RbacIntegrationTest {
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
             ResponseEntity<Map> permResponse = restTemplate.exchange(
-                baseUrl + "/system/permission/listByRole",
+                baseUrl + "/system/permission/listByRole?roleId=" + testRole.getId(),
                 HttpMethod.GET,
                 entity,
-                new ParameterizedTypeReference<Map>() {},
-                Collections.singletonMap("roleId", testRole.getId())
+                Map.class
             );
             
             assertThat(permResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -392,10 +386,28 @@ class RbacIntegrationTest {
             
             assignPermissionToRole(testRole.getId(), testPermission.getId());
             assignRoleToUser(1, testRole.getId(), "system");
+
+            // 登录获取 Token（/system/** 需要鉴权）
+            AuthRequest loginRequest = new AuthRequest();
+            loginRequest.setUsername("admin");
+            loginRequest.setPassword("123456");
+            ResponseEntity<Map> loginResponse = restTemplate.postForEntity(
+                baseUrl + "/auth/login",
+                loginRequest,
+                Map.class
+            );
+            Map<String, Object> loginBody = loginResponse.getBody();
+            Map<String, Object> data = (Map<String, Object>) loginBody.get("data");
+            String accessToken = (String) data.get("accessToken");
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + accessToken);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
             
             // 验证权限存在
-            ResponseEntity<Map> beforeResponse = restTemplate.getForEntity(
+            ResponseEntity<Map> beforeResponse = restTemplate.exchange(
                 baseUrl + "/system/permission/listByRole?roleId=" + testRole.getId(),
+                HttpMethod.GET,
+                entity,
                 Map.class
             );
             
@@ -409,8 +421,10 @@ class RbacIntegrationTest {
             );
             
             // 验证权限已移除
-            ResponseEntity<Map> afterResponse = restTemplate.getForEntity(
+            ResponseEntity<Map> afterResponse = restTemplate.exchange(
                 baseUrl + "/system/permission/listByRole?roleId=" + testRole.getId(),
+                HttpMethod.GET,
+                entity,
                 Map.class
             );
             
@@ -668,19 +682,27 @@ class RbacIntegrationTest {
                     }
                 }
             }
-        } catch (Exception e) {
-            // 如果 API 调用失败，直接插入数据库
-            jdbcTemplate.update(
-                "INSERT INTO role (name, code, description, status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)",
-                name, code, description, status, LocalDateTime.now(), LocalDateTime.now()
+        } catch (Exception ignored) {
+            // ignore - fallback below
+        }
+
+        // Fallback：若 API 未创建成功（例如 401/403/非 200），直接写库并查回 id
+        if (role.getId() == null) {
+            try {
+                jdbcTemplate.update(
+                    "INSERT INTO role (name, code, description, status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?)",
+                    name, code, description, status, LocalDateTime.now(), LocalDateTime.now()
+                );
+            } catch (Exception ignored) {
+                // ignore duplicate or other non-critical errors
+            }
+            List<Map<String, Object>> roles = jdbcTemplate.queryForList(
+                "SELECT * FROM role WHERE code = ? ORDER BY id DESC LIMIT 1",
+                code
             );
-            
-            // 获取生成的 ID
-            Integer id = jdbcTemplate.queryForObject(
-                "SELECT LAST_INSERT_ID()",
-                Integer.class
-            );
-            role.setId(id);
+            if (!roles.isEmpty()) {
+                role.setId(((Number) roles.get(0).get("id")).intValue());
+            }
         }
         
         return role;
@@ -734,19 +756,27 @@ class RbacIntegrationTest {
                     }
                 }
             }
-        } catch (Exception e) {
-            // 如果 API 调用失败，直接插入数据库
-            jdbcTemplate.update(
-                "INSERT INTO permission (name, code, type, url, method, parent_id, sort, status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                name, code, type, url, method, parentId, sort, status, LocalDateTime.now(), LocalDateTime.now()
+        } catch (Exception ignored) {
+            // ignore - fallback below
+        }
+
+        // Fallback：若 API 未创建成功（例如 401/403/非 200），直接写库并查回 id
+        if (permission.getId() == null) {
+            try {
+                jdbcTemplate.update(
+                    "INSERT INTO permission (name, code, type, url, method, parent_id, sort, status, create_time, update_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    name, code, type, url, method, parentId, sort, status, LocalDateTime.now(), LocalDateTime.now()
+                );
+            } catch (Exception ignored) {
+                // ignore duplicate or other non-critical errors
+            }
+            List<Map<String, Object>> perms = jdbcTemplate.queryForList(
+                "SELECT * FROM permission WHERE code = ? ORDER BY id DESC LIMIT 1",
+                code
             );
-            
-            // 获取生成的 ID
-            Integer id = jdbcTemplate.queryForObject(
-                "SELECT LAST_INSERT_ID()",
-                Integer.class
-            );
-            permission.setId(id);
+            if (!perms.isEmpty()) {
+                permission.setId(((Number) perms.get(0).get("id")).intValue());
+            }
         }
         
         return permission;
@@ -756,21 +786,24 @@ class RbacIntegrationTest {
      * 为角色分配权限
      */
     private void assignPermissionToRole(Integer roleId, Integer permissionId) {
+        boolean ok = false;
         try {
-            // 通过 API 分配
             Map<String, Object> request = new java.util.HashMap<>();
             request.put("roleId", roleId);
             request.put("permissionIds", Arrays.asList(permissionId));
-            
-            restTemplate.postForEntity(
+            ResponseEntity<Map> resp = restTemplate.postForEntity(
                 baseUrl + "/system/permission/assign",
                 request,
                 Map.class
             );
-        } catch (Exception e) {
-            // 如果 API 调用失败，直接插入数据库
+            ok = resp.getStatusCode() == HttpStatus.OK;
+        } catch (Exception ignored) {
+            // ignore - fallback below
+        }
+        if (!ok) {
+            // Fallback：直接写库（H2 兼容）
             jdbcTemplate.update(
-                "INSERT IGNORE INTO role_permission (role_id, permission_id) VALUES (?, ?)",
+                "MERGE INTO role_permission (role_id, permission_id) KEY(role_id, permission_id) VALUES (?, ?)",
                 roleId,
                 permissionId
             );
@@ -781,25 +814,28 @@ class RbacIntegrationTest {
      * 为用户分配角色
      */
     private void assignRoleToUser(Integer userId, Integer roleId, String userType) {
+        boolean ok = false;
         try {
-            // 通过 API 分配
             UserRoleRequest request = new UserRoleRequest();
             request.setUserId(userId);
             request.setRoleIds(Collections.singletonList(roleId));
             request.setUserType(userType);
-            
-            restTemplate.postForEntity(
+            ResponseEntity<Map> resp = restTemplate.postForEntity(
                 baseUrl + "/system/userRole/assign",
                 request,
                 Map.class
             );
-        } catch (Exception e) {
-            // 如果 API 调用失败，直接插入数据库
+            ok = resp.getStatusCode() == HttpStatus.OK;
+        } catch (Exception ignored) {
+            // ignore - fallback below
+        }
+        if (!ok) {
+            // Fallback：直接写库（H2 兼容）
             jdbcTemplate.update(
-                "INSERT IGNORE INTO user_role (user_id, role_id, user_type) VALUES (?, ?, ?)",
+                "MERGE INTO user_role (user_id, user_type, role_id) KEY(user_id, user_type, role_id) VALUES (?, ?, ?)",
                 userId,
-                roleId,
-                userType
+                userType,
+                roleId
             );
         }
     }
@@ -824,12 +860,14 @@ class RbacIntegrationTest {
             name, parentId, level, path, sort, status, LocalDateTime.now(), LocalDateTime.now()
         );
         
-        // 获取生成的 ID
-        Integer id = jdbcTemplate.queryForObject(
-            "SELECT LAST_INSERT_ID()",
-            Integer.class
+        // 获取生成的 ID（H2 兼容）
+        List<Map<String, Object>> orgs = jdbcTemplate.queryForList(
+            "SELECT * FROM organization WHERE name = ? ORDER BY id DESC LIMIT 1",
+            name
         );
-        organization.setId(id);
+        if (!orgs.isEmpty()) {
+            organization.setId(((Number) orgs.get(0).get("id")).intValue());
+        }
         
         return organization;
     }

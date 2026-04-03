@@ -5,22 +5,14 @@ import io.minio.PutObjectArgs;
 import io.minio.errors.MinioException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Properties;
+import javax.annotation.PostConstruct;
 
 @Service
 public class MinioUploadController {
@@ -28,31 +20,31 @@ public class MinioUploadController {
     private static MinioClient minioClient;
     private static String bucketName;
 
-    public static void init(){
-        Properties properties = new Properties();
-        try {
-            // 使用类加载器获取资源文件的输入流
-            InputStream inputStream = MinioUploadController.class.getClassLoader().getResourceAsStream("application-dev.properties");
-            if (inputStream != null) {
-                properties.load(inputStream);
-                String minioEndpoint = properties.getProperty("minio.endpoint");
-                String minioAccessKey = properties.getProperty("minio.access-key");
-                String minioSecretKey = properties.getProperty("minio.secret-key");
-                String minioBucketName = properties.getProperty("minio.bucket-name");
-                bucketName = minioBucketName;
-                minioClient = MinioClient.builder()
-                        .endpoint(minioEndpoint)
-                        .credentials(minioAccessKey, minioSecretKey)
-                        .build();
-            }
-        }catch (Exception e){
-            System.out.println(e);
-        }
+    @Value("${minio.bucket-name:user01}")
+    private String configuredBucketName;
+
+    /**
+     * 使用 Spring 容器中注入的 MinioClient（测试环境可注入 mock），避免静态读取 application-dev.properties 导致测试联网失败。
+     */
+    @Autowired(required = false)
+    public void setMinioClient(MinioClient client) {
+        MinioUploadController.minioClient = client;
+    }
+
+    @PostConstruct
+    public void initBucketName() {
+        MinioUploadController.bucketName = configuredBucketName;
+    }
+
+    private static boolean ready() {
+        return minioClient != null && bucketName != null && !bucketName.trim().isEmpty();
     }
 
     public static String uploadFile(MultipartFile file) {
         try {
-            init();
+            if (!ready()) {
+                return "Error uploading file to MinIO: MinioClient not configured";
+            }
             InputStream inputStream = file.getInputStream();
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -72,7 +64,9 @@ public class MinioUploadController {
     }
     public static String uploadImgFile(MultipartFile file) {
         try {
-            init();
+            if (!ready()) {
+                return "Error uploading file to MinIO: MinioClient not configured";
+            }
             InputStream inputStream = file.getInputStream();
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -92,7 +86,9 @@ public class MinioUploadController {
     }
     public static String uploadSonglistImgFile(MultipartFile file) {
         try {
-            init();
+            if (!ready()) {
+                return "Error uploading file to MinIO: MinioClient not configured";
+            }
             InputStream inputStream = file.getInputStream();
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -112,7 +108,9 @@ public class MinioUploadController {
     }
     public static String uploadSongImgFile(MultipartFile file) {
         try {
-            init();
+            if (!ready()) {
+                return "Error uploading file to MinIO: MinioClient not configured";
+            }
             InputStream inputStream = file.getInputStream();
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -133,7 +131,9 @@ public class MinioUploadController {
 
     public static String uploadAtorImgFile(MultipartFile file) {
         try {
-            init();
+            if (!ready()) {
+                return "Error uploading file to MinIO: MinioClient not configured";
+            }
             InputStream inputStream = file.getInputStream();
             minioClient.putObject(
                     PutObjectArgs.builder()

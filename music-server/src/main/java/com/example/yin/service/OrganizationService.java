@@ -22,4 +22,9 @@ public interface OrganizationService extends IService<Organization> {
     R getOrganizationTree();
 
     R getChildrenOrganizations(Integer parentId);
+
+    /**
+     * 查询组织下的用户列表（预留：后续可扩展为返回 admin/consumer 混合列表或按类型筛选）
+     */
+    R getOrganizationUsers(Integer organizationId);
 }

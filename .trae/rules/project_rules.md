@@ -1,3 +1,7 @@
+---
+alwaysApply: false
+description: 在执行功能开发流程的时候生效。
+---
 # 项目开发规则
 
 ## 一、开发流程

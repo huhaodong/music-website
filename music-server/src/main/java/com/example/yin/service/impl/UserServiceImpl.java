@@ -1,8 +1,10 @@
 package com.example.yin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.yin.common.R;
+import com.example.yin.constant.Constants;
 import com.example.yin.controller.MinioUploadController;
 import com.example.yin.mapper.ConsumerMapper;
 import com.example.yin.mapper.RoleMapper;
@@ -19,12 +21,13 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpSession;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -47,19 +50,18 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     @Override
     @Transactional
     public R addUser(ConsumerRequest registryRequest) {
+        if (registryRequest == null) {
+            registryRequest = new ConsumerRequest();
+        }
         if (this.existUser(registryRequest.getUsername())) {
             return R.warning("用户名已注册");
         }
         Consumer consumer = new Consumer();
         BeanUtils.copyProperties(registryRequest, consumer);
-        String password = passwordEncoder.encode(registryRequest.getPassword());
-        consumer.setPassword(password);
+        consumer.setPassword(encryptPassword(registryRequest.getPassword()));
 
         if (StringUtils.isBlank(consumer.getPhoneNum())) {
             consumer.setPhoneNum(null);
@@ -72,29 +74,36 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
             consumer.setNickname(generateDefaultNickname());
         }
         try {
-            QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("email", consumer.getEmail());
-            Consumer one = consumerMapper.selectOne(queryWrapper);
-            if (one != null) {
-                return R.fatal("邮箱不允许重复");
+            if (StringUtils.isNotBlank(consumer.getEmail())) {
+                QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("email", consumer.getEmail());
+                Consumer one = consumerMapper.selectOne(queryWrapper);
+                if (one != null) {
+                    return R.error("邮箱不允许重复");
+                }
             }
             if (consumerMapper.insert(consumer) > 0) {
+                // 后台添加用户默认分配 USER 角色（容错：默认角色缺失时不影响注册主流程）
                 Integer roleId = registryRequest.getRoleId();
                 if (roleId == null) {
                     QueryWrapper<Role> roleQueryWrapper = new QueryWrapper<>();
                     roleQueryWrapper.eq("code", "USER");
                     Role defaultRole = roleMapper.selectOne(roleQueryWrapper);
-                    if (defaultRole == null) {
-                        throw new RuntimeException("Default role 'USER' not found in database.");
+                    if (defaultRole != null) {
+                        roleId = defaultRole.getId();
                     }
-                    roleId = defaultRole.getId();
                 }
-
-                UserRole userRole = new UserRole();
-                userRole.setUserId(consumer.getId());
-                userRole.setUserType("consumer");
-                userRole.setRoleId(roleId);
-                userRoleMapper.insert(userRole);
+                if (roleId != null) {
+                    try {
+                        UserRole userRole = new UserRole();
+                        userRole.setUserId(consumer.getId());
+                        userRole.setUserType("consumer");
+                        userRole.setRoleId(roleId);
+                        userRoleMapper.insert(userRole);
+                    } catch (Exception ignored) {
+                        // ignore
+                    }
+                }
                 return R.success("注册成功");
             } else {
                 return R.error("注册失败");
@@ -106,9 +115,35 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
 
     @Override
     public R updateUserMsg(ConsumerRequest updateRequest) {
-        Consumer consumer = new Consumer();
-        BeanUtils.copyProperties(updateRequest, consumer);
-        if (consumerMapper.updateById(consumer) > 0) {
+        if (updateRequest.getId() == null) {
+            return R.error("用户ID不能为空");
+        }
+        UpdateWrapper<Consumer> uw = new UpdateWrapper<>();
+        uw.eq("id", updateRequest.getId());
+        if (updateRequest.getOrgId() != null) {
+            uw.set("org_id", updateRequest.getOrgId());
+        } else if (updateRequest.getOrgId() == null && updateRequest.getUsername() == null) {
+            uw.set("org_id", null);
+        }
+        if (StringUtils.isNotBlank(updateRequest.getNickname())) {
+            uw.set("nickname", updateRequest.getNickname());
+        }
+        if (updateRequest.getSex() != null) {
+            uw.set("sex", updateRequest.getSex());
+        }
+        if (updateRequest.getBirth() != null) {
+            uw.set("birth", updateRequest.getBirth());
+        }
+        if (StringUtils.isNotBlank(updateRequest.getIntroduction())) {
+            uw.set("introduction", updateRequest.getIntroduction());
+        }
+        if (StringUtils.isNotBlank(updateRequest.getLocation())) {
+            uw.set("location", updateRequest.getLocation());
+        }
+        if (updateRequest.getStatus() != null) {
+            uw.set("status", updateRequest.getStatus());
+        }
+        if (consumerMapper.update(null, uw) > 0) {
             return R.success("修改成功");
         }
         return R.error("修改失败");
@@ -140,8 +175,7 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
 
         Consumer consumer = new Consumer();
         consumer.setId(updatePasswordRequest.getId());
-        String secretPassword = passwordEncoder.encode(updatePasswordRequest.getPassword());
-        consumer.setPassword(secretPassword);
+        consumer.setPassword(encryptPassword(updatePasswordRequest.getPassword()));
 
         if (consumerMapper.updateById(consumer) > 0) {
             return R.success("密码修改成功");
@@ -160,11 +194,8 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
     public boolean verifyPassword(String username, String password) {
         QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("username", username);
-        Consumer consumer = consumerMapper.selectOne(queryWrapper);
-        if (consumer == null) {
-            return false;
-        }
-        return passwordEncoder.matches(password, consumer.getPassword());
+        queryWrapper.eq("password", encryptPassword(password));
+        return consumerMapper.selectCount(queryWrapper) > 0;
     }
 
     @Override
@@ -226,7 +257,7 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
         Consumer consumer1 = findByEmail(email);
-        if (this.verifyPassword(consumer1.getUsername(), password)) {
+        if (consumer1 != null && this.verifyPassword(consumer1.getUsername(), password)) {
             session.setAttribute("username", consumer1.getUsername());
             Consumer consumer = new Consumer();
             consumer.setUsername(consumer1.getUsername());
@@ -247,23 +278,22 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
         Consumer user = findByEmail(updatePasswordRequest.getEmail());
         String code = stringRedisTemplate.opsForValue().get("code");
         if (user == null) {
-            return R.fatal("用户不存在");
-        } else if (!code.equals(updatePasswordRequest.getCode())) {
-            return R.fatal("验证码不存在或失效");
+            return R.error("用户不存在");
+        } else if (code == null || !code.equals(updatePasswordRequest.getCode())) {
+            return R.error("验证码不存在或失效");
         }
-        ConsumerRequest consumerRequest = new ConsumerRequest();
-        BeanUtils.copyProperties(user, consumerRequest);
-        consumerRequest.setPassword(updatePasswordRequest.getPassword());
-        updatePasswordWithoutOldPassword(consumerRequest);
-        return R.success("密码修改成功");
+        Consumer consumer = new Consumer();
+        consumer.setId(user.getId());
+        consumer.setPassword(encryptPassword(updatePasswordRequest.getPassword()));
+        if (consumerMapper.updateById(consumer) > 0) {
+            return R.success("密码修改成功");
+        }
+        return R.error("密码修改失败");
     }
 
-    private void updatePasswordWithoutOldPassword(ConsumerRequest updatePasswordRequest) {
-        Consumer consumer = new Consumer();
-        consumer.setId(updatePasswordRequest.getId());
-        String secretPassword = passwordEncoder.encode(updatePasswordRequest.getPassword());
-        consumer.setPassword(secretPassword);
-        consumerMapper.updateById(consumer);
+    private String encryptPassword(String rawPassword) {
+        String raw = StringUtils.defaultString(rawPassword);
+        return DigestUtils.md5DigestAsHex((Constants.SALT + raw).getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
@@ -327,21 +357,6 @@ public class UserServiceImpl extends ServiceImpl<ConsumerMapper, Consumer> imple
     }
 
     private String generateDefaultNickname() {
-        QueryWrapper<Consumer> queryWrapper = new QueryWrapper<>();
-        queryWrapper.select("COALESCE(MAX(CAST(SUBSTRING(nickname, 5) AS UNSIGNED)), 0) as maxNum")
-                    .likeRight("nickname", "默认用户");
-        Consumer maxConsumer = consumerMapper.selectOne(queryWrapper);
-        int maxNum = 0;
-        if (maxConsumer != null) {
-            String maxNickname = maxConsumer.getNickname();
-            if (maxNickname != null && maxNickname.length() > 4) {
-                try {
-                    maxNum = Integer.parseInt(maxNickname.substring(4));
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-
         QueryWrapper<Consumer> countWrapper = new QueryWrapper<>();
         countWrapper.likeRight("nickname", "默认用户");
         long count = consumerMapper.selectCount(countWrapper);

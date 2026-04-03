@@ -72,8 +72,6 @@
           <el-radio :label="0">女</el-radio>
           <el-radio :label="1">男</el-radio>
           <el-radio :label="2">保密</el-radio>
-          <el-radio :label="2">组合</el-radio>
-          <el-radio :label="3">不明</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="故乡" prop="location">
@@ -105,8 +103,6 @@
           <el-radio :label="0">女</el-radio>
           <el-radio :label="1">男</el-radio>
           <el-radio :label="2">保密</el-radio>
-          <el-radio :label="2">组合</el-radio>
-          <el-radio :label="3">不明</el-radio>
         </el-radio-group>
       </el-form-item>
       <el-form-item label="出生" prop="birth">

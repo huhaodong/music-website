@@ -133,16 +133,80 @@ CREATE TABLE IF NOT EXISTS singer (
   introduction VARCHAR(255) DEFAULT NULL
 );
 
+-- Create artist table (Singer upgraded to Artist)
+CREATE TABLE IF NOT EXISTS artist (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  type VARCHAR(32) NOT NULL DEFAULT 'singer',
+  sex TINYINT DEFAULT NULL,
+  pic VARCHAR(255) DEFAULT NULL,
+  birth DATETIME DEFAULT NULL,
+  location VARCHAR(255) DEFAULT NULL,
+  introduction VARCHAR(255) DEFAULT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create project table
+CREATE TABLE IF NOT EXISTS project (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  org_id INT NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  description VARCHAR(1000) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+  deleted TINYINT NOT NULL DEFAULT 0,
+  created_by INT DEFAULT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create project_artist association table
+CREATE TABLE IF NOT EXISTS project_artist (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  artist_id INT NOT NULL,
+  role VARCHAR(32) NOT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (project_id, artist_id, role)
+);
+
+-- Create project_status_log table (project lifecycle audit)
+CREATE TABLE IF NOT EXISTS project_status_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  from_status VARCHAR(32) NOT NULL,
+  to_status VARCHAR(32) NOT NULL,
+  operator_id INT DEFAULT NULL,
+  operator_name VARCHAR(255) DEFAULT NULL,
+  remark VARCHAR(500) DEFAULT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create song table
 CREATE TABLE IF NOT EXISTS song (
   id INT AUTO_INCREMENT PRIMARY KEY,
   singer_id INT NOT NULL,
+  artist_id INT DEFAULT NULL,
+  project_id INT DEFAULT NULL,
   name VARCHAR(100) NOT NULL,
   introduction VARCHAR(255) DEFAULT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   pic VARCHAR(255) DEFAULT NULL,
-  lyric VARCHAR(255) DEFAULT NULL,
+  lyric TEXT DEFAULT NULL,
   url VARCHAR(255) NOT NULL
 );
+
+-- Backward-compatible fix for existing H2 schemas created before song extensions were introduced
+ALTER TABLE song
+  ADD COLUMN IF NOT EXISTS artist_id INT DEFAULT NULL;
+ALTER TABLE song
+  ADD COLUMN IF NOT EXISTS project_id INT DEFAULT NULL;
+ALTER TABLE song
+  ADD COLUMN IF NOT EXISTS create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE song
+  ADD COLUMN IF NOT EXISTS update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- Create song_list table
 CREATE TABLE IF NOT EXISTS song_list (

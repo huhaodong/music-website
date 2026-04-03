@@ -92,7 +92,57 @@ const HttpManager = {
     // 返回歌单里指定歌单ID的歌曲
     getListSongOfSongId: (songListId) => get(`listSong/detail?songListId=${songListId}`),
     // 删除歌单里的歌曲
-    deleteListSong: (songId) => get(`listSong/delete?songId=${songId}`)
+    deleteListSong: (songId) => get(`listSong/delete?songId=${songId}`),
+
+    // =======================> Artist / Project（M3）API
+    pageArtists: ({ type, keyword, page, size }: { type?: string; keyword?: string; page?: number; size?: number }) => {
+        const qs: string[] = [];
+        if (type) qs.push(`type=${encodeURIComponent(type)}`);
+        if (keyword) qs.push(`keyword=${encodeURIComponent(keyword)}`);
+        if (page) qs.push(`page=${page}`);
+        if (size) qs.push(`size=${size}`);
+        const query = qs.length ? `?${qs.join('&')}` : '';
+        return get(`/api/artist${query}`);
+    },
+    getArtist: (id: number) => get(`/api/artist/${id}`),
+    createArtist: (data: any) => post(`/api/artist`, data),
+    updateArtist: (id: number, data: any) => put(`/api/artist/${id}`, data),
+    deleteArtist: (id: number) => deletes(`/api/artist/${id}`),
+    listArtistProjects: (id: number) => get(`/api/artist/${id}/projects`),
+
+    pageProjects: ({
+        status,
+        orgId,
+        keyword,
+        sortBy,
+        sortOrder,
+        page,
+        size,
+    }: {
+        status?: string;
+        orgId?: number;
+        keyword?: string;
+        sortBy?: string;
+        sortOrder?: string;
+        page?: number;
+        size?: number;
+    }) => {
+        const qs: string[] = [];
+        if (status) qs.push(`status=${encodeURIComponent(status)}`);
+        if (orgId) qs.push(`orgId=${orgId}`);
+        if (keyword) qs.push(`keyword=${encodeURIComponent(keyword)}`);
+        if (sortBy) qs.push(`sortBy=${encodeURIComponent(sortBy)}`);
+        if (sortOrder) qs.push(`sortOrder=${encodeURIComponent(sortOrder)}`);
+        if (page) qs.push(`page=${page}`);
+        if (size) qs.push(`size=${size}`);
+        const query = qs.length ? `?${qs.join('&')}` : '';
+        return get(`/api/project${query}`);
+    },
+    getProjectDetail: (id: number) => get(`/api/project/${id}`),
+    createProject: (data: any) => post(`/api/project`, data),
+    updateProject: (id: number, data: any) => put(`/api/project/${id}`, data),
+    deleteProject: (id: number) => deletes(`/api/project/${id}`),
+    changeProjectStatus: (id: number, data: any) => put(`/api/project/${id}/status`, data),
 
 }
 

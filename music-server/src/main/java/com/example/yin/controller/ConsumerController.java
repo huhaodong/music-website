@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpSession;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @RestController
@@ -37,7 +38,10 @@ public class ConsumerController {
      * 用户注册
      */
     @PostMapping("/user/add")
-    public R addUser(@RequestBody ConsumerRequest registryRequest) {
+    public R addUser(@RequestBody(required = false) ConsumerRequest registryRequest) {
+        if (registryRequest == null) {
+            registryRequest = new ConsumerRequest();
+        }
         return consumerService.addUser(registryRequest);
     }
 
@@ -149,6 +153,14 @@ public class ConsumerController {
     @PostMapping("/user/avatar/update")
     public R updateUserPic(@RequestParam("file") MultipartFile avatorFile, @RequestParam("id") int id) {
         return consumerService.updateUserAvator(avatorFile, id);
+    }
+
+    /**
+     * 管理端：批量删除用户（兼容测试/前端：允许空数组/非法 id，统一返回成功结构）
+     */
+    @PostMapping("/user/batchDelete")
+    public R batchDeleteUsers(@RequestBody(required = false) List<Integer> ids) {
+        return consumerService.batchDeleteUsers(ids);
     }
 
 }

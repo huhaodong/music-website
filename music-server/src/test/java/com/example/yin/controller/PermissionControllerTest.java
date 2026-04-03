@@ -6,7 +6,9 @@ import com.example.yin.security.JwtTokenProvider;
 import com.example.yin.security.TokenBlacklistService;
 import com.example.yin.service.PermissionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -14,15 +16,20 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 /**
  * PermissionController 集成测试
  */
 @WebMvcTest(PermissionController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class PermissionControllerTest {
 
     @MockBean
@@ -39,6 +46,18 @@ class PermissionControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUpMocks() {
+        when(permissionService.getPermissionTree()).thenReturn(com.example.yin.common.R.success(null, Collections.emptyList()));
+        when(permissionService.getAllPermissions()).thenReturn(com.example.yin.common.R.success(null, Collections.emptyList()));
+        when(permissionService.getPermissionsByRoleId(anyInt())).thenReturn(com.example.yin.common.R.success(null, Collections.emptyList()));
+        when(permissionService.getPermissionById(anyInt())).thenReturn(com.example.yin.common.R.success(null, new HashMap<>()));
+        when(permissionService.addPermission(any(PermissionRequest.class))).thenReturn(com.example.yin.common.R.success("ok"));
+        when(permissionService.updatePermission(any(PermissionRequest.class))).thenReturn(com.example.yin.common.R.success("ok"));
+        when(permissionService.deletePermission(anyInt())).thenReturn(com.example.yin.common.R.success("ok"));
+        when(permissionService.assignPermissionsToRole(anyInt(), anyList())).thenReturn(com.example.yin.common.R.success("ok"));
+    }
 
     /**
      * 测试获取权限树

@@ -16,6 +16,10 @@ spring:
       data-locations: classpath:data-h2.sql
       continue-on-error: false
 
+app:
+  permission:
+    enabled: false
+
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

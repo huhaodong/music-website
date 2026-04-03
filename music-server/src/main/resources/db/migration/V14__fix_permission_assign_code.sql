@@ -1,4 +1,4 @@
--- V8: 修复 /system/permission/assign 权限码兼容性
+-- V14: 修复 /system/permission/assign 权限码兼容性
 -- 目标：
 -- 1) 补齐 legacy 权限码 role:assign
 -- 2) 补齐 system 权限码 system:role:assign-permission

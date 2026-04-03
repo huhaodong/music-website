@@ -48,6 +48,7 @@
             <el-button type="primary" size="small" @click="showAddMemberDialog">添加成员</el-button>
           </div>
           <el-table :data="memberList" border stripe max-height="300">
+            <el-table-column prop="orgPath" label="所属组织" min-width="160"></el-table-column>
             <el-table-column prop="username" label="用户名" width="100"></el-table-column>
             <el-table-column prop="nickname" label="昵称" width="100"></el-table-column>
             <el-table-column prop="phoneNum" label="手机号" width="120"></el-table-column>
@@ -61,7 +62,14 @@
             </el-table-column>
             <el-table-column label="操作" width="100">
               <template v-slot="scope">
-                <el-button type="danger" size="small" @click="removeMember(scope.row)">移除</el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                  :disabled="Number(scope.row.orgId) !== Number(selectedOrg?.id)"
+                  @click="removeMember(scope.row)"
+                >
+                  移除
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -173,106 +181,12 @@ export default defineComponent({
       return error?.message || error?.msg || error?.data?.message || fallback;
     }
 
-    function extractOrgArray(payload: any): any[] {
-      // 兼容不同后端分页/包装结构：data / data.data / data.records / data.list / data.rows
-      if (Array.isArray(payload)) return payload;
-      if (Array.isArray(payload?.data)) return payload.data;
-      if (Array.isArray(payload?.records)) return payload.records;
-      if (Array.isArray(payload?.list)) return payload.list;
-      if (Array.isArray(payload?.rows)) return payload.rows;
-      return [];
-    }
-
-    function normalizeOrgTree(nodes: any[], parentName = ""): any[] {
-      return (nodes || []).map((raw: any) => {
-        // 兼容 children 字段命名差异
-        const rawChildren =
-          raw?.children ??
-          raw?.childrenList ??
-          raw?.childList ??
-          raw?.childrens ??
-          [];
-
-        const childrenArr = extractOrgArray(rawChildren);
-        const normalized: any = {
-          ...raw,
-          // 兜底字段，避免空渲染/细节页显示异常
-          id: raw?.id,
-          name: raw?.name ?? raw?.orgName ?? raw?.title ?? "",
-          sort: raw?.sort ?? 0,
-          status: raw?.status ?? 1,
-          parentId: raw?.parentId ?? raw?.parent_id ?? null,
-          parentName: raw?.parentName ?? parentName,
-          children: childrenArr.length ? normalizeOrgTree(childrenArr, raw?.name ?? "") : [],
-        };
-
-        // 子节点排序（若后端未排序）
-        if (Array.isArray(normalized.children) && normalized.children.length) {
-          normalized.children.sort((a: any, b: any) => (a?.sort ?? 0) - (b?.sort ?? 0));
-        }
-        return normalized;
-      });
-    }
-
-    function buildTreeFromList(list: any[]): any[] {
-      const items = (list || []).map((raw: any) => ({
-        ...raw,
-        id: raw?.id,
-        name: raw?.name ?? raw?.orgName ?? "",
-        sort: raw?.sort ?? 0,
-        status: raw?.status ?? 1,
-        // 兼容 parentId 为 0 / null 两种根节点表示
-        parentId: raw?.parentId ?? raw?.parent_id ?? null,
-        children: [] as any[],
-      }));
-
-      const byId = new Map<number, any>();
-      for (const item of items) {
-        if (item?.id != null) byId.set(item.id, item);
-      }
-
-      const roots: any[] = [];
-      for (const item of items) {
-        const pid = item.parentId === 0 ? null : item.parentId;
-        if (pid == null) {
-          roots.push(item);
-          continue;
-        }
-        const parent = byId.get(pid);
-        if (!parent) {
-          // 找不到父节点时降级为根节点，避免整棵树丢失
-          roots.push(item);
-          continue;
-        }
-        item.parentName = parent.name;
-        parent.children.push(item);
-      }
-
-      const sortRecursively = (nodes: any[]) => {
-        nodes.sort((a: any, b: any) => (a?.sort ?? 0) - (b?.sort ?? 0));
-        for (const n of nodes) {
-          if (Array.isArray(n.children) && n.children.length) sortRecursively(n.children);
-        }
-      };
-      sortRecursively(roots);
-
-      return roots;
-    }
-
     async function getOrgTree() {
       try {
-        // 优先使用后端 tree 接口
-        const treeRes = (await SystemManager.getOrganizationTree()) as any;
-        const treeData = extractOrgArray(treeRes?.data);
-        if (Array.isArray(treeData) && treeData.length) {
-          orgTreeData.value = normalizeOrgTree(treeData);
-          return;
+        const result = await SystemManager.getOrganizationTree() as any;
+        if (result.data) {
+          orgTreeData.value = result.data;
         }
-
-        // tree 为空时，回退到 list 并在前端构建树（常见原因：根节点 parentId 用 0 表示导致后端 buildTree 过滤掉）
-        const listRes = (await SystemManager.getAllOrganizations()) as any;
-        const listData = extractOrgArray(listRes?.data);
-        orgTreeData.value = normalizeOrgTree(buildTreeFromList(listData));
       } catch (error: any) {
         ElMessage.error(getErrorMessage(error, "获取组织树失败"));
       }
@@ -362,63 +276,49 @@ export default defineComponent({
     const memberTableRef = ref();
     const selectedMembers = ref<any[]>([]);
 
-    function getSelectedOrgId(): number | null {
-      const val = selectedOrg.value?.id ?? selectedOrg.value?.orgId ?? selectedOrg.value?.org_id ?? null;
-      return val == null ? null : Number(val);
-    }
-
-    function getUserOrgId(user: any): number | null {
-      const val =
-        user?.orgId ??
-        user?.org_id ??
-        user?.organizationId ??
-        user?.organization_id ??
-        user?.org?.id ??
-        null;
-      // 兼容 0 / undefined / null
-      return val === 0 || val == null ? null : Number(val);
-    }
-
-    function normalizeUser(raw: any) {
-      const orgId = getUserOrgId(raw);
-      return {
-        ...raw,
-        id: raw?.id,
-        username: raw?.username ?? raw?.userName ?? "",
-        nickname: raw?.nickname ?? raw?.nickName ?? "",
-        email: raw?.email ?? "",
-        // el-table 列里用的是 phoneNum，这里做字段兜底
-        phoneNum: raw?.phoneNum ?? raw?.phone ?? raw?.phone_number ?? "",
-        // 后续筛选/更新统一走 orgId
-        orgId,
-        status: raw?.status ?? 1,
+    const orgPathMap = computed(() => {
+      const map = new Map<number, string>();
+      const visit = (nodes: any[], parentPath: string) => {
+        (nodes || []).forEach((n: any) => {
+          const id = Number(n?.id);
+          const name = String(n?.name ?? "");
+          const path = parentPath ? `${parentPath} / ${name}` : name;
+          if (!Number.isNaN(id)) {
+            map.set(id, path);
+          }
+          const children = Array.isArray(n?.children) ? n.children : [];
+          if (children.length) {
+            visit(children, path);
+          }
+        });
       };
+      visit(orgTreeData.value, "");
+      return map;
+    });
+
+    function getDescendantOrgIds(node: any): number[] {
+      const ids: number[] = [];
+      const walk = (n: any) => {
+        const id = Number(n?.id);
+        if (!Number.isNaN(id)) ids.push(id);
+        const children = Array.isArray(n?.children) ? n.children : [];
+        children.forEach(walk);
+      };
+      walk(node);
+      return ids;
     }
 
     const availableMembers = computed(() => {
-      const currentOrgId = getSelectedOrgId();
-      // 未选择组织时不展示可选成员，避免误操作
-      if (currentOrgId == null) return [];
-      // 过滤掉已属于当前组织的成员（可被重新分配到当前组织的其他用户仍可见）
-      return allUsers.value.filter((u) => (u?.orgId ?? null) !== Number(currentOrgId));
+      if (!selectedOrg.value) return [];
+      const orgIds = new Set(getDescendantOrgIds(selectedOrg.value));
+      return allUsers.value.filter(user => !orgIds.has(Number(user?.orgId)));
     });
-
-    function updateLocalUserOrg(userId: number, orgId: number | null) {
-      const idx = allUsers.value.findIndex((u) => Number(u?.id) === Number(userId));
-      if (idx >= 0) {
-        allUsers.value[idx] = { ...allUsers.value[idx], orgId };
-      }
-    }
 
     async function getAllUsers() {
       try {
-        const result = (await SystemManager.getAllUsers()) as any;
-        const users = extractOrgArray(result?.data);
-        allUsers.value = (users || []).map(normalizeUser);
-        // 若已选中组织，刷新成员列表，避免“先点组织后加载用户”导致成员为空
-        const currentOrgId = getSelectedOrgId();
-        if (currentOrgId != null) {
-          await loadMembers(Number(currentOrgId));
+        const result = (await SystemManager.getAllUsers()) as ResponseBody;
+        if (result.data) {
+          allUsers.value = result.data;
         }
       } catch (error) {
         console.error("获取用户列表失败", error);
@@ -426,13 +326,28 @@ export default defineComponent({
     }
 
     async function loadMembers(orgId: number) {
-      memberList.value = allUsers.value.filter((user) => (user?.orgId ?? null) === orgId);
+      const orgIds = selectedOrg.value ? new Set(getDescendantOrgIds(selectedOrg.value)) : new Set<number>([Number(orgId)]);
+      memberList.value = allUsers.value
+        .filter(user => orgIds.has(Number(user?.orgId)))
+        .map((u: any) => {
+          const oid = Number(u?.orgId);
+          return {
+            ...u,
+            orgPath: orgPathMap.value.get(oid) || "-",
+          };
+        });
+    }
+
+    function updateLocalUserOrgId(userId: number, orgId: number | null) {
+      const idx = allUsers.value.findIndex((u: any) => u?.id === userId);
+      if (idx < 0) return;
+      const next = { ...allUsers.value[idx], orgId };
+      allUsers.value.splice(idx, 1, next);
     }
 
     function handleNodeClick(data: any) {
       selectedOrg.value = data;
-      const orgId = data?.id ?? data?.orgId ?? data?.org_id;
-      if (orgId != null) loadMembers(Number(orgId));
+      loadMembers(data.id);
     }
 
     function showAddMemberDialog() {
@@ -456,22 +371,21 @@ export default defineComponent({
         ElMessage.warning("请选择要添加的成员");
         return;
       }
+      if (!selectedOrg.value?.id) {
+        ElMessage.warning("请先选择一个组织");
+        return;
+      }
       try {
-        const orgId = getSelectedOrgId();
-        if (orgId == null) {
-          ElMessage.warning("请先选择一个组织");
-          return;
-        }
         for (const member of selectedMembers.value) {
           await SystemManager.updateUser({
             id: member.id,
-            orgId,
+            orgId: selectedOrg.value.id,
           });
-          updateLocalUserOrg(member.id, orgId);
+          updateLocalUserOrgId(member.id, selectedOrg.value.id);
         }
         ElMessage.success("添加成员成功");
         addMemberDialogVisible.value = false;
-        loadMembers(orgId);
+        loadMembers(selectedOrg.value.id);
       } catch (error: any) {
         ElMessage.error(getErrorMessage(error, "添加成员失败"));
       }
@@ -479,6 +393,10 @@ export default defineComponent({
 
     async function removeMember(member: any) {
       try {
+        if (!selectedOrg.value?.id) {
+          ElMessage.warning("请先选择一个组织");
+          return;
+        }
         await ElMessageBox.confirm(`确定要将成员 "${member.username}" 从组织中移除吗？`, "提示", {
           confirmButtonText: "确定",
           cancelButtonText: "取消",
@@ -488,10 +406,9 @@ export default defineComponent({
           id: member.id,
           orgId: null,
         });
-        updateLocalUserOrg(member.id, null);
+        updateLocalUserOrgId(member.id, null);
         ElMessage.success("移除成员成功");
-        const orgId = getSelectedOrgId();
-        if (orgId != null) loadMembers(orgId);
+        loadMembers(selectedOrg.value.id);
       } catch (error: any) {
         if (error !== "cancel") {
           ElMessage.error(getErrorMessage(error, "移除成员失败"));
